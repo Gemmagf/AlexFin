@@ -96,6 +96,94 @@ with tabs[0]:
     """)
 
 # --- Topics Tab ---
-# (The existing Topics content remains as-is and will be shown under lang["topics"])
+with tabs[1]:
+    st.header(lang["topics"])
+
+    def display_topic(title, summary, chart_caption, link):
+        st.subheader(title)
+        st.write(summary)
+        data = pd.DataFrame({
+            "Year": [2024, 2025, 2026, 2027, 2028],
+            "Value": [100, 120, 150, 180, 210]
+        })
+        chart = alt.Chart(data).mark_line(point=True).encode(
+            x="Year",
+            y="Value"
+        ).properties(title=chart_caption)
+        st.altair_chart(chart, use_container_width=True)
+        st.markdown(f"🔗 [Official Link]({link})")
+
+    display_topic(
+        "Swiss 3rd Pillar Explained (Säule 3a)",
+        "Discover how to reduce your taxes while saving for retirement. Learn the difference between banking vs. insurance options—and why not all 3a accounts are created equal.",
+        "Tax-advantaged growth over time",
+        "https://www.ch.ch/en/retirement/third-pillar/"
+    )
+
+    display_topic(
+        "How Krankenkasse Really Works",
+        "Confused by Swiss health insurance? Let’s break down basic vs. supplemental coverage, models like Telmed & HMO, and how to save CHF 1,000+ per year.",
+        "Annual savings potential with model comparison",
+        "https://www.ch.ch/en/health/health-insurance/"
+    )
+
+    display_topic(
+        "Investing in Switzerland 101",
+        "Learn how to start investing with just CHF 100/month. We’ll compare ETFs vs. savings, explain risk levels, and show you how to open your first Swiss brokerage account.",
+        "Growth comparison: ETF vs. Savings",
+        "https://www.finanztipp.ch/etf/"
+    )
+
+    display_topic(
+        "Tax Deductions You’re Probably Missing",
+        "From 3a contributions to commuting costs—let’s make your tax declaration work for you. These tips could mean hundreds back in your pocket.",
+        "Potential tax savings chart",
+        "https://www.ch.ch/en/taxes/deductions/"
+    )
+
+    display_topic(
+        "Monthly Budgeting in Switzerland",
+        "Life in Switzerland isn’t cheap—but budgeting doesn’t have to be hard. Here’s a simple way to structure your monthly income using the 50/30/20 rule adapted for Swiss costs.",
+        "Example budget allocation",
+        "https://www.ch.ch/en/money-budget/"
+    )
+
+    display_topic(
+        "The True Cost of Living Alone in CH",
+        "Want to move out? Let's break down rent, insurance, transport, and food so you can realistically plan a solo life in Zurich, Geneva, or even Lugano.",
+        "Estimated cost breakdown for solo living",
+        "https://www.ch.ch/en/living/"
+    )
+
+    display_topic(
+        "Krankenkasse Change Deadline: What You Need to Know",
+        "Every November, you have a chance to save. This post walks you through the deadline, how to compare premiums, and send a Kündigung letter.",
+        "Savings from timely plan changes",
+        "https://www.ch.ch/en/health/health-insurance/change-insurance/"
+    )
+
+    display_topic(
+        "Pillar 3a: Bank or Insurance?",
+        "Weighing your options? Learn why one offers more flexibility, while the other might lock you in for decades. Alex helps you decide what suits your goals.",
+        "Comparison of flexibility and returns",
+        "https://www.moneyland.ch/en/3a-pillar-bank-or-insurance"
+    )
+
+    display_topic(
+        "Swiss Franc Stability & Investing",
+        "Why is the CHF considered “safe”? What does that mean for your long-term investment strategy? Understand currency strength in simple terms.",
+        "CHF vs. global currency performance",
+        "https://www.snb.ch/en/"
+    )
+
+    display_topic(
+        "Expats: How to Navigate Swiss Finance",
+        "Just moved to CH? Here’s a quick-start guide on health insurance, mandatory coverage, and how to start saving or investing even as a newcomer.",
+        "Newcomer financial onboarding path",
+        "https://www.ch.ch/en/moving-to-switzerland/"
+    )
+
 # --- Resources Tab ---
-# (Remains as-is under lang["resources"])
+with tabs[2]:
+    st.header(lang["resources"])
+    st.write("Coming soon: downloadable guides, checklists and calculators!")
