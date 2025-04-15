@@ -227,7 +227,7 @@ with tabs[3]:
     st.markdown("💭 _These preferences help personalize your financial roadmap more deeply._")
 
     with st.expander("🧭 Life Goals & Future Plans"):
-            col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
         with col1:
             wants_children = st.radio("👶 Planning to have (more) children?", ["No", "Yes", "Maybe"])
             dream_trip = st.text_input("✈️ Dream travel destination or trip?")
