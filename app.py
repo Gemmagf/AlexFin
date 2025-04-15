@@ -24,7 +24,9 @@ translations = {
         "about_me": "👋 About Me",
         "what_i_help": "What I Can Help With",
         "topics": "📘 Financial Topics",
-        "resources": "📂 Free Tools & Guides"
+        "resources": "📂 Free Tools & Guides",
+        "user": "📈 Personal Finance Projection"
+        
     },
     "Deutsch": {
         "title": "🇨🇭 Schweizer Finanzen einfach erklärt",
@@ -32,7 +34,8 @@ translations = {
         "about_me": "👋 Über mich",
         "what_i_help": "Womit ich helfen kann",
         "topics": "📘 Finanzthemen",
-        "resources": "📂 Kostenlose Tools & Leitfäden"
+        "resources": "📂 Kostenlose Tools & Leitfäden",
+        "user": "📈 Personal Finance Projection"
     },
     "Français": {
         "title": "🇨🇭 La finance suisse simplifiée",
@@ -40,7 +43,8 @@ translations = {
         "about_me": "👋 À propos de moi",
         "what_i_help": "Ce que je peux vous aider à comprendre",
         "topics": "📘 Sujets financiers",
-        "resources": "📂 Outils et guides gratuits"
+        "resources": "📂 Outils et guides gratuits",
+        "user": "📈 Personal Finance Projection"
     },
     "Italiano": {
         "title": "🇨🇭 Finanza Svizzera Semplificata",
@@ -48,7 +52,8 @@ translations = {
         "about_me": "👋 Chi sono",
         "what_i_help": "Come posso aiutarti",
         "topics": "📘 Argomenti finanziari",
-        "resources": "📂 Strumenti e guide gratuite"
+        "resources": "📂 Strumenti e guide gratuite",
+        "user": "📈 Personal Finance Projection"
     },
     "Español": {
         "title": "🇨🇭 Finanzas suizas simplificadas",
@@ -56,7 +61,8 @@ translations = {
         "about_me": "👋 Sobre mí",
         "what_i_help": "En qué puedo ayudarte",
         "topics": "📘 Temas financieros",
-        "resources": "📂 Herramientas y guías gratuitas"
+        "resources": "📂 Herramientas y guías gratuitas",
+        "user": "📈 Personal Finance Projection"
     }
 }
 
@@ -75,7 +81,7 @@ except FileNotFoundError:
     st.sidebar.markdown("👤 Alex – your Swiss finance buddy")
 
 # --- Navigation Tabs ---
-tabs = st.tabs([lang["about_me"], lang["topics"], lang["resources"]])
+tabs = st.tabs([lang["about_me"], lang["topics"], lang["resources"], lang["user"])
 
 # --- About Tab ---
 with tabs[0]:
@@ -187,3 +193,6 @@ with tabs[1]:
 with tabs[2]:
     st.header(lang["resources"])
     st.write("Coming soon: downloadable guides, checklists and calculators!")
+
+# --- User Tab ---
+with tabs[3]:
