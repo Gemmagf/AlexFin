@@ -227,16 +227,16 @@ with tabs[3]:
     st.markdown("💭 _These preferences help personalize your financial roadmap more deeply._")
 
     with st.expander("🧭 Life Goals & Future Plans"):
-    col1, col2 = st.columns(2)
-    with col1:
-        wants_children = st.radio("👶 Planning to have (more) children?", ["No", "Yes", "Maybe"])
-        dream_trip = st.text_input("✈️ Dream travel destination or trip?")
-        travel_budget = st.slider("💸 Annual Travel Budget (CHF)", 0, 30000, 5000, step=500)
-        major_purchase = st.selectbox("🚗 Next big purchase you're planning?", ["Home", "Car", "Education", "Startup", "None"])
-    with col2:
-        career_goal = st.text_area("💼 Career ambitions or job changes in the next 5–10 years?")
-        lifestyle_upgrades = st.multiselect("🌟 Desired lifestyle upgrades", ["Luxury Living", "Work Flexibility", "More Leisure Time", "Move Abroad", "None"])
-        wellness_goals = st.radio("🧘‍♀️ Focus on wellness or mental health?", ["Yes", "No", "Trying to prioritize"])
+            col1, col2 = st.columns(2)
+        with col1:
+            wants_children = st.radio("👶 Planning to have (more) children?", ["No", "Yes", "Maybe"])
+            dream_trip = st.text_input("✈️ Dream travel destination or trip?")
+            travel_budget = st.slider("💸 Annual Travel Budget (CHF)", 0, 30000, 5000, step=500)
+            major_purchase = st.selectbox("🚗 Next big purchase you're planning?", ["Home", "Car", "Education", "Startup", "None"])
+        with col2:
+            career_goal = st.text_area("💼 Career ambitions or job changes in the next 5–10 years?")
+            lifestyle_upgrades = st.multiselect("🌟 Desired lifestyle upgrades", ["Luxury Living", "Work Flexibility", "More Leisure Time", "Move Abroad", "None"])
+            wellness_goals = st.radio("🧘‍♀️ Focus on wellness or mental health?", ["Yes", "No", "Trying to prioritize"])
 
 
     with st.expander("🎯 Goals & Investment Preferences"):
@@ -248,6 +248,7 @@ with tabs[3]:
         other_assets = st.multiselect("💰 Other Assets", ["Real Estate", "Crypto", "Business", "High-yield Savings", "None"])
         wants_to_invest_more = st.radio("➕ Increase Investment?", ["Yes", "No", "Maybe"])
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
+    
 
     
     # --- Calculations ---
