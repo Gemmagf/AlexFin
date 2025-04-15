@@ -303,18 +303,21 @@ with tabs[3]:
         tooltip=["Year", "value"]
     )
 
-    income_vs_expenses = alt.Chart(df).transform_fold(
-        ["Income", "Expenses"],
-        as_=["Category", "CHF"]
-    ).mark_line().encode(
-        x="Year",
-        y="CHF:Q",
-        color="Category:N",
-        tooltip=["Year", "Category", "CHF"]
+    income_vs_expenses_df = df[["Year", "Income", "Expenses"]].melt(id_vars="Year", var_name="Type", value_name="CHF")
+
+    income_vs_expenses_chart = alt.Chart(income_vs_expenses_df).mark_line(point=True).encode(
+        x=alt.X("Year:O", title="Age"),
+        y=alt.Y("CHF:Q", title="Annual Amount (CHF)"),
+        color=alt.Color("Type:N", title=""),
+        tooltip=["Year", "Type", "CHF"]
+    ).properties(
+        title="💵 Income vs Expenses"
     )
 
+    st.altair_chart(income_vs_expenses_chart, use_container_width=True)
+
     st.altair_chart((mc_chart + base_chart).properties(title="📈 Net Worth Projection (Monte Carlo Simulation)"), use_container_width=True)
-    st.altair_chart(income_vs_expenses.properties(title="💵 Income vs Expenses"), use_container_width=True)
+
 
     # --- Summary ---
     st.subheader("📝 Summary & Recommendations")
