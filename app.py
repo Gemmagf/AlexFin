@@ -250,7 +250,11 @@ with tabs[3]:
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
     
 
-    
+    inflation_rate = 1.6  # e.g., average Swiss inflation
+    salary_growth_rate = 2.2  # average wage growth
+    investment_return = 4.8  # long-term equity market average after inflation
+    forecast_years = 25  # keep this as user-configurable if you want
+
     # --- Calculations ---
     import pandas as pd
     import numpy as np
