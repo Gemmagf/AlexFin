@@ -299,7 +299,7 @@ with tabs[3]:
     investment_return = 4.8  # long-term equity market average after inflation
     forecast_years = 25  # keep this as user-configurable if you want
 
-    # --- Calculations ---
+   # --- Calculations ---
     import pandas as pd
     import numpy as np
     import altair as alt
@@ -313,7 +313,16 @@ with tabs[3]:
         return [value * ((1 + rate / 100) ** y) for y in years]
 
     income = grow(current_salary * 12, salary_growth_rate)
-    costs = grow(total_expenses * 12, inflation_rate)
+    base_costs = grow(total_expenses * 12, inflation_rate)
+
+    # Add travel + children cost + pets
+    travel_addon = [travel_budget for _ in years]
+    child_costs = [15000 + y * 500 for y in years] if has_kids == "Yes" else [0] * len(years)
+    pet_costs = [600] * len(years) if any(p != "None" for p in pets) else [0] * len(years)
+    lifestyle_spike = [3000] * len(years) if "Luxury Living" in lifestyle_upgrades else [0] * len(years)
+
+    total_additional_costs = [sum(x) for x in zip(travel_addon, child_costs, pet_costs, lifestyle_spike)]
+    costs = [a + b for a, b in zip(base_costs, total_additional_costs)]
 
     df["Income"] = income
     df["Expenses"] = costs
@@ -326,7 +335,7 @@ with tabs[3]:
 
     df["Net Worth (Base Case)"] = net_worth
 
-    # --- Monte Carlo-like Projections ---
+    # Monte Carlo
     simulations = 50
     mc_df = pd.DataFrame({"Year": age_projection})
     np.random.seed(42)
@@ -341,24 +350,20 @@ with tabs[3]:
             net.append(max(new_val, 0))
         mc_df[f"Sim {i+1}"] = net
 
-    # --- Combined Visualization ---
     st.subheader("📊 Financial Projection Overview")
 
-    df["Year"] = df["Year"].astype(int)
-    mc_df["Year"] = mc_df["Year"].astype(int)
-
     base_chart = alt.Chart(df).mark_line().encode(
-        x=alt.X("Year:O", title="Age"),
-        y=alt.Y("Net Worth (Base Case):Q", title="Net Worth (CHF)"),
+        x="Year",
+        y=alt.Y("Net Worth (Base Case)", title="CHF"),
         color=alt.value("green"),
-        tooltip=[alt.Tooltip("Year:O", title="Age"), alt.Tooltip("Net Worth (Base Case):Q", title="Net Worth", format=",.0f")]
+        tooltip=["Year", "Net Worth (Base Case)"]
     )
 
-    mc_chart = alt.Chart(mc_df.melt("Year")).mark_line(opacity=0.1).encode(
-        x=alt.X("Year:O", title="Age"),
-        y=alt.Y("value:Q", title="Net Worth (CHF)"),
-        color=alt.value("#999"),
-        tooltip=[alt.Tooltip("Year:O", title="Age"), alt.Tooltip("value:Q", title="Net Worth", format=",.0f")]
+    mc_chart = alt.Chart(mc_df.melt("Year")).mark_line(opacity=0.15).encode(
+        x="Year",
+        y="value:Q",
+        color=alt.value("#888"),
+        tooltip=["Year", "value"]
     )
 
     income_vs_expenses_df = df[["Year", "Income", "Expenses"]].melt(id_vars="Year", var_name="Type", value_name="CHF")
@@ -367,7 +372,7 @@ with tabs[3]:
         x=alt.X("Year:O", title="Age"),
         y=alt.Y("CHF:Q", title="Annual Amount (CHF)"),
         color=alt.Color("Type:N", title=""),
-        tooltip=[alt.Tooltip("Year:O", title="Age"), "Type:N", alt.Tooltip("CHF:Q", format=",.0f")]
+        tooltip=["Year", "Type", "CHF"]
     ).properties(
         title="💵 Income vs Expenses"
     )
@@ -375,12 +380,15 @@ with tabs[3]:
     st.altair_chart(income_vs_expenses_chart, use_container_width=True)
     st.altair_chart((mc_chart + base_chart).properties(title="📈 Net Worth Projection (Monte Carlo Simulation)"), use_container_width=True)
 
-    # --- Summary ---
+    # --- Summary & Stability Score ---
     st.subheader("📝 Summary & Recommendations")
+    score = round((net_worth[-1] / (income[-1] * 10)) * 10, 1)
+
     st.markdown(f"""
-    - 📊 Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
-    - 💼 Estimated **annual income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
-    - 💸 Projected **annual expenses at that time**: `CHF {int(costs[-1]):,}`
+    - Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
+    - Estimated **income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
+    - Projected **expenses at that time**: `CHF {int(costs[-1]):,}`
+    - 🧠 **Future Stability Score**: `{score} / 10`
     """)
 
     st.markdown("### ✅ Suggestions")
@@ -390,4 +398,5 @@ with tabs[3]:
     3. Maintain a healthy gap between lifestyle cost and income growth.
     """)
 
+    st.success("🎉 You’ve completed your financial profile!")
     st.download_button("📥 Download Report (Mock)", "This will be a PDF report", file_name="projection_report.txt")
