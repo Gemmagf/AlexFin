@@ -195,6 +195,7 @@ with tabs[2]:
     st.write("Coming soon: downloadable guides, checklists and calculators!")
 
 # --- User Tab ---
+# --- User Tab ---
 with tabs[3]:
     st.header("🌱 Your Future Planner")
 
@@ -220,7 +221,6 @@ with tabs[3]:
     misc = st.number_input("🧾 Other Regular Expenses", 0, 2000, 300)
 
     total_expenses = rent + food + transport + entertainment + healthcare + misc
-
     st.markdown(f"**💸 Total Monthly Living Cost:** CHF {total_expenses:,}")
 
     st.subheader("🎯 Life Goals")
@@ -241,7 +241,6 @@ with tabs[3]:
         }
         st.success("Profile saved. Move on to projections and investment analysis.")
 
-
         st.header("📈 Income & Cost Evolution Forecast")
 
     st.subheader("🔄 Assumptions & Parameters")
@@ -253,87 +252,73 @@ with tabs[3]:
         investment_return = st.slider("📊 Average Investment Return (%)", 0.0, 10.0, 5.0, step=0.1)
         forecast_years = st.slider("📅 Projection Period (Years)", 5, 40, 25)
 
-    st.markdown("Based on your inputs, we’ll simulate cost of living and salary evolution across three scenarios.")
-
     st.subheader("💼 Income & Cost Projections")
 
     # Fetch user data
-    profile = st.session_state["user_profile"]
-    base_income = profile["income"]
-    base_cost = profile["expenses"]
-    age = profile["age"]
-    retire_age = profile["goals"]["retire_age"]
+    if "user_profile" in st.session_state:
+        profile = st.session_state["user_profile"]
+        base_income = profile["income"]
+        base_cost = profile["expenses"]
+        age = profile["age"]
+        retire_age = profile["goals"]["retire_age"]
 
-    # Create projections
-    import pandas as pd
+        import pandas as pd
 
-    years = list(range(0, forecast_years + 1))
-    df = pd.DataFrame({"Year": [age + y for y in years]})
+        years = list(range(0, forecast_years + 1))
+        df = pd.DataFrame({"Year": [age + y for y in years]})
 
-    # Income Scenarios
-    def project_income(base, rate):
-        return [round(base * ((1 + rate / 100) ** y)) for y in years]
+        def project_income(base, rate):
+            return [round(base * ((1 + rate / 100) ** y)) for y in years]
 
-    df["Income (Conservative)"] = project_income(base_income, salary_growth_rate * 0.5)
-    df["Income (Balanced)"] = project_income(base_income, salary_growth_rate)
-    df["Income (Rich)"] = project_income(base_income, salary_growth_rate * 1.5)
+        df["Income (Conservative)"] = project_income(base_income, salary_growth_rate * 0.5)
+        df["Income (Balanced)"] = project_income(base_income, salary_growth_rate)
+        df["Income (Rich)"] = project_income(base_income, salary_growth_rate * 1.5)
 
-    # Expenses with inflation + adjustments for kids, house, etc.
-    def project_cost(base, inflation):
-        factor = 1 + inflation / 100
-        return [round(base * (factor ** y)) for y in years]
+        def project_cost(base, inflation):
+            return [round(base * ((1 + inflation / 100) ** y)) for y in years]
 
-    df["Living Costs"] = project_cost(base_cost, inflation_rate)
+        df["Living Costs"] = project_cost(base_cost, inflation_rate)
 
-    # Show chart
-    st.line_chart(df.set_index("Year")[["Income (Balanced)", "Living Costs"]])
+        st.line_chart(df.set_index("Year")[["Income (Balanced)", "Living Costs"]])
 
-    st.markdown("This chart shows your expected income vs cost evolution over time. The goal is to keep income comfortably above cost.")
+        st.subheader("💰 Investment & Asset Inputs")
+        owns_home = st.radio("🏠 Do you currently own a home?", ["No", "Yes"])
+        has_3a = st.radio("💼 Do you have a 3rd Pillar account?", ["No", "Yes"])
+        has_indexed_investments = st.radio("📈 Do you invest in ETFs/index funds?", ["No", "Yes"])
+        wants_to_invest_more = st.radio("➕ Interested in increasing investments?", ["Yes", "No", "Maybe"])
 
-    st.subheader("💰 Investment & Asset Inputs")
-    owns_home = st.radio("🏠 Do you currently own a home?", ["No", "Yes"])
-    has_3a = st.radio("💼 Do you have a 3rd Pillar account?", ["No", "Yes"])
-    has_indexed_investments = st.radio("📈 Do you invest in ETFs/index funds?", ["No", "Yes"])
-    wants_to_invest_more = st.radio("➕ Interested in increasing investments?", ["Yes", "No", "Maybe"])
+        other_assets = st.multiselect("💡 Other Assets or Plans", [
+            "Real estate property", "Crypto", "Business ownership", "High-yield savings", "Rental income", "None"
+        ])
 
-    other_assets = st.multiselect("💡 Other Assets or Plans", [
-        "Real estate property", "Crypto", "Business ownership", "High-yield savings", "Rental income", "None"
-    ])
+        st.subheader("📊 Net Worth Projection")
+        initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
 
-    st.markdown("We’ll factor these into your net worth growth over time using average return rates.")
+        net_worth = [initial_savings]
+        for y in range(1, forecast_years + 1):
+            yearly_income = df.loc[y, "Income (Balanced)"]
+            yearly_cost = df.loc[y, "Living Costs"]
+            yearly_saving = max(0, yearly_income * 12 - yearly_cost * 12)
+            growth = net_worth[-1] * (1 + investment_return / 100)
+            net_worth.append(round(growth + yearly_saving))
 
-    st.subheader("📊 Net Worth Projection")
+        df["Estimated Net Worth"] = net_worth
 
-    initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
+        st.line_chart(df.set_index("Year")[["Estimated Net Worth"]])
 
-    net_worth = [initial_savings]
-    for y in range(1, forecast_years + 1):
-        yearly_income = df.loc[y, "Income (Balanced)"]
-        yearly_cost = df.loc[y, "Living Costs"]
-        yearly_saving = max(0, yearly_income * 12 - yearly_cost * 12)
-        growth = net_worth[-1] * (1 + investment_return / 100)
-        net_worth.append(round(growth + yearly_saving))
+        st.subheader("📄 Summary Report & Suggestions")
+        st.markdown("### 🔍 Highlights:")
+        st.markdown(f"- **Estimated net worth in {forecast_years} years:** CHF {net_worth[-1]:,}")
+        st.markdown(f"- **Yearly costs at age {age + forecast_years}:** CHF {df['Living Costs'].iloc[-1] * 12:,}")
+        st.markdown(f"- **Income at that time (balanced):** CHF {df['Income (Balanced)'].iloc[-1] * 12:,}")
 
-    df["Estimated Net Worth"] = net_worth
+        st.markdown("### ✅ 3 Smart Recommendations:")
+        st.markdown("""
+        1. **Increase investment allocation** by at least 10% of surplus income annually.
+        2. **Consider 3a or ETF investing** if not already active — tax-efficient long-term growth.
+        3. **Keep expenses under control**, especially lifestyle inflation, even as salary increases.
+        """)
 
-    st.line_chart(df.set_index("Year")[["Estimated Net Worth"]])
+        st.markdown("📬 **For deeper insights, we suggest a call with a certified financial planner.**")
 
-    st.markdown("Your estimated net worth grows over time, combining salary savings and compounding returns.")
-
-    st.subheader("📄 Summary Report & Suggestions")
-
-    st.markdown("### 🔍 Highlights:")
-    st.markdown(f"- **Estimated net worth in {forecast_years} years:** CHF {net_worth[-1]:,}")
-    st.markdown(f"- **Yearly costs at age {age + forecast_years}:** CHF {df['Living Costs'].iloc[-1] * 12:,}")
-    st.markdown(f"- **Income at that time (balanced):** CHF {df['Income (Balanced)'].iloc[-1] * 12:,}")
-
-    st.markdown("### ✅ 3 Smart Recommendations:")
-    st.markdown("""
-    1. **Increase investment allocation** by at least 10% of surplus income annually.
-    2. **Consider 3a or ETF investing** if not already active — tax-efficient long-term growth.
-    3. **Keep expenses under control**, especially lifestyle inflation, even as salary increases.
-    """)
-
-    st.markdown("📬 **For deeper insights, we suggest a call with a certified financial planner.**")
-
-    st.download_button("📥 Download Full Financial Report (Mock)", data="Coming soon!", file_name="financial_report.txt")
+        st.download_button("📥 Download Full Financial Report (Mock)", data="Coming soon!", file_name="financial_report.txt")
