@@ -195,130 +195,139 @@ with tabs[2]:
     st.write("Coming soon: downloadable guides, checklists and calculators!")
 
 # --- User Tab ---
-# --- User Tab ---
-with tabs[3]:
-    st.header("🌱 Your Future Planner")
+st.header("🌱 Your Future Planner")
 
-    st.subheader("👤 Personal & Lifestyle Info")
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("🎂 Age", 18, 70, 30)
-        status = st.selectbox("💍 Relationship Status", ["Single", "Married", "Divorced", "Widowed"])
-        has_kids = st.radio("👶 Do you have children?", ["No", "Yes", "Planning to have"])
-        pets = st.multiselect("🐶 Pets", ["Dog", "Cat", "None", "Other"])
-    with col2:
-        hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"])
-        wants_to_travel = st.radio("✈️ Do you want to travel frequently in the future?", ["Yes", "No", "Sometimes"])
-        career_field = st.selectbox("💼 Job Sector", ["Tech", "Finance", "Healthcare", "Education", "Other"])
-        current_salary = st.number_input("💵 Current Net Monthly Income (CHF)", 0, 3000000, 70000)
+    with st.expander("👤 Personal & Lifestyle Information"):
+        col1, col2 = st.columns(2)
+        with col1:
+            age = st.number_input("🎂 Age", 18, 70, 30)
+            status = st.selectbox("💍 Relationship Status", ["Single", "Married", "Divorced", "Widowed"])
+            has_kids = st.radio("👶 Do you have children?", ["No", "Yes", "Planning to have"])
+            pets = st.multiselect("🐶 Pets", ["Dog", "Cat", "None", "Other"])
+        with col2:
+            hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"])
+            wants_to_travel = st.radio("✈️ Travel frequency", ["Yes", "No", "Sometimes"])
+            career_field = st.selectbox("💼 Job Sector", ["Tech", "Finance", "Healthcare", "Education", "Other"])
+            current_salary = st.number_input("💵 Current Monthly Income (CHF)", 0, 300000, 7000)
 
-    st.subheader("🏠 Living Expenses")
-    rent = st.number_input("🏡 Monthly Rent or Mortgage", 0, 5000000, 1500)
-    food = st.number_input("🍽️ Monthly Food Expenses", 0, 300000000, 600)
-    transport = st.number_input("🚗 Monthly Transport (car/train/fuel)", 0, 200000, 300)
-    entertainment = st.number_input("🎭 Entertainment & Hobbies", 0, 20000000, 400)
-    healthcare = st.number_input("🩺 Healthcare & Insurance", 0, 100000, 350)
-    misc = st.number_input("🧾 Other Regular Expenses", 0, 2000, 300)
+    with st.expander("🏠 Living Expenses"):
+        col1, col2 = st.columns(2)
+        with col1:
+            rent = st.number_input("🏡 Monthly Rent / Mortgage", 0, 20000, 1500)
+            food = st.number_input("🍽️ Food & Groceries", 0, 10000, 600)
+            transport = st.number_input("🚗 Transport", 0, 5000, 300)
+        with col2:
+            entertainment = st.number_input("🎭 Entertainment & Hobbies", 0, 5000, 400)
+            healthcare = st.number_input("🩺 Healthcare & Insurance", 0, 2000, 350)
+            misc = st.number_input("🧾 Other Expenses", 0, 3000, 300)
 
     total_expenses = rent + food + transport + entertainment + healthcare + misc
-    st.markdown(f"**💸 Total Monthly Living Cost:** CHF {total_expenses:,}")
+    st.markdown(f"**💸 Total Monthly Living Cost:** `CHF {total_expenses:,}`")
 
-    st.subheader("🎯 Life Goals")
-    wants_to_buy_house = st.radio("🏡 Want to own a house in future?", ["Yes", "No", "Maybe"])
-    retirement_age = st.slider("🎉 Desired Retirement Age", 55, 70, 65)
-    wants_early_retirement = st.radio("⏳ Interested in early retirement?", ["No", "Yes"])
-
-    if st.button("➡️ Continue to Projections"):
-        st.session_state["user_profile"] = {
-            "age": age, "status": status, "kids": has_kids, "pets": pets,
-            "hobbies": hobbies, "career": career_field, "income": current_salary,
-            "expenses": total_expenses, "goals": {
-                "travel": wants_to_travel,
-                "house": wants_to_buy_house,
-                "retire_age": retirement_age,
-                "early_retire": wants_early_retirement
-            }
-        }
-        st.success("Profile saved. Move on to projections and investment analysis.")
-
-        st.header("📈 Income & Cost Evolution Forecast")
-
-    st.subheader("🔄 Assumptions & Parameters")
-    col1, col2 = st.columns(2)
-    with col1:
-        inflation_rate = st.slider("📈 Annual Inflation Rate (%)", 0.0, 5.0, 1.5, step=0.1)
-        salary_growth_rate = st.slider("💼 Expected Annual Salary Growth (%)", 0.0, 10.0, 3.0, step=0.1)
-    with col2:
-        investment_return = st.slider("📊 Average Investment Return (%)", 0.0, 10.0, 5.0, step=0.1)
-        forecast_years = st.slider("📅 Projection Period (Years)", 5, 40, 25)
-
-    st.subheader("💼 Income & Cost Projections")
-
-    # Fetch user data
-    if "user_profile" in st.session_state:
-        profile = st.session_state["user_profile"]
-        base_income = profile["income"]
-        base_cost = profile["expenses"]
-        age = profile["age"]
-        retire_age = profile["goals"]["retire_age"]
-
-        import pandas as pd
-
-        years = list(range(0, forecast_years + 1))
-        df = pd.DataFrame({"Year": [age + y for y in years]})
-
-        def project_income(base, rate):
-            return [round(base * ((1 + rate / 100) ** y)) for y in years]
-
-        df["Income (Conservative)"] = project_income(base_income, salary_growth_rate * 0.5)
-        df["Income (Balanced)"] = project_income(base_income, salary_growth_rate)
-        df["Income (Rich)"] = project_income(base_income, salary_growth_rate * 1.5)
-
-        def project_cost(base, inflation):
-            return [round(base * ((1 + inflation / 100) ** y)) for y in years]
-
-        df["Living Costs"] = project_cost(base_cost, inflation_rate)
-
-        st.line_chart(df.set_index("Year")[["Income (Balanced)", "Living Costs"]])
-
-        st.subheader("💰 Investment & Asset Inputs")
-        owns_home = st.radio("🏠 Do you currently own a home?", ["No", "Yes"])
-        has_3a = st.radio("💼 Do you have a 3rd Pillar account?", ["No", "Yes"])
-        has_indexed_investments = st.radio("📈 Do you invest in ETFs/index funds?", ["No", "Yes"])
-        wants_to_invest_more = st.radio("➕ Interested in increasing investments?", ["Yes", "No", "Maybe"])
-
-        other_assets = st.multiselect("💡 Other Assets or Plans", [
-            "Real estate property", "Crypto", "Business ownership", "High-yield savings", "Rental income", "None"
-        ])
-
-        st.subheader("📊 Net Worth Projection")
+    with st.expander("🎯 Goals & Investment Preferences"):
+        wants_to_buy_house = st.radio("🏠 Planning to buy a house?", ["Yes", "No", "Maybe"])
+        retirement_age = st.slider("🎉 Desired Retirement Age", 55, 70, 65)
+        owns_home = st.radio("🏘️ Owns home now?", ["Yes", "No"])
+        has_3a = st.radio("💼 Has 3rd Pillar?", ["Yes", "No"])
+        has_etfs = st.radio("📈 Invests in ETFs/Index Funds?", ["Yes", "No"])
+        other_assets = st.multiselect("💰 Other Assets", ["Real Estate", "Crypto", "Business", "High-yield Savings", "None"])
+        wants_to_invest_more = st.radio("➕ Increase Investment?", ["Yes", "No", "Maybe"])
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
 
-        net_worth = [initial_savings]
-        for y in range(1, forecast_years + 1):
-            yearly_income = df.loc[y, "Income (Balanced)"]
-            yearly_cost = df.loc[y, "Living Costs"]
-            yearly_saving = max(0, yearly_income * 12 - yearly_cost * 12)
-            growth = net_worth[-1] * (1 + investment_return / 100)
-            net_worth.append(round(growth + yearly_saving))
+    with st.expander("📈 Projection Assumptions"):
+        col1, col2 = st.columns(2)
+        with col1:
+            inflation_rate = st.slider("📉 Inflation Rate (%)", 0.0, 5.0, 1.5, 0.1)
+            salary_growth_rate = st.slider("📈 Salary Growth (%)", 0.0, 10.0, 3.0, 0.1)
+        with col2:
+            investment_return = st.slider("📊 Investment Return (%)", 0.0, 10.0, 5.0, 0.1)
+            forecast_years = st.slider("⏳ Projection Years", 5, 40, 25)
 
-        df["Estimated Net Worth"] = net_worth
+    # --- Calculations ---
+    import pandas as pd
+    import numpy as np
+    import altair as alt
 
-        st.line_chart(df.set_index("Year")[["Estimated Net Worth"]])
+    years = list(range(0, forecast_years + 1))
+    age_projection = [age + y for y in years]
 
-        st.subheader("📄 Summary Report & Suggestions")
-        st.markdown("### 🔍 Highlights:")
-        st.markdown(f"- **Estimated net worth in {forecast_years} years:** CHF {net_worth[-1]:,}")
-        st.markdown(f"- **Yearly costs at age {age + forecast_years}:** CHF {df['Living Costs'].iloc[-1] * 12:,}")
-        st.markdown(f"- **Income at that time (balanced):** CHF {df['Income (Balanced)'].iloc[-1] * 12:,}")
+    df = pd.DataFrame({"Year": age_projection})
 
-        st.markdown("### ✅ 3 Smart Recommendations:")
-        st.markdown("""
-        1. **Increase investment allocation** by at least 10% of surplus income annually.
-        2. **Consider 3a or ETF investing** if not already active — tax-efficient long-term growth.
-        3. **Keep expenses under control**, especially lifestyle inflation, even as salary increases.
-        """)
+    def grow(value, rate):
+        return [value * ((1 + rate / 100) ** y) for y in years]
 
-        st.markdown("📬 **For deeper insights, we suggest a call with a certified financial planner.**")
+    income = grow(current_salary * 12, salary_growth_rate)
+    costs = grow(total_expenses * 12, inflation_rate)
 
-        st.download_button("📥 Download Full Financial Report (Mock)", data="Coming soon!", file_name="financial_report.txt")
+    df["Income"] = income
+    df["Expenses"] = costs
+
+    net_worth = [initial_savings]
+    for i in range(1, len(years)):
+        surplus = income[i] - costs[i]
+        investment_growth = net_worth[-1] * (1 + investment_return / 100)
+        net_worth.append(investment_growth + surplus)
+
+    df["Net Worth (Base Case)"] = net_worth
+
+    # --- Monte Carlo-like Projections ---
+    simulations = 50
+    mc_df = pd.DataFrame({"Year": age_projection})
+    np.random.seed(42)
+    for i in range(simulations):
+        net = [initial_savings]
+        for j in range(1, len(years)):
+            rand_income = income[j] * np.random.normal(1, 0.05)
+            rand_cost = costs[j] * np.random.normal(1, 0.05)
+            rand_return = np.random.normal(investment_return / 100, 0.03)
+            surplus = max(0, rand_income - rand_cost)
+            new_val = net[-1] * (1 + rand_return) + surplus
+            net.append(max(new_val, 0))
+        mc_df[f"Sim {i+1}"] = net
+
+    # --- Combined Visualization ---
+    st.subheader("📊 Financial Projection Overview")
+
+    base_chart = alt.Chart(df).mark_line().encode(
+        x="Year",
+        y=alt.Y("Net Worth (Base Case)", title="CHF"),
+        color=alt.value("green"),
+        tooltip=["Year", "Net Worth (Base Case)"]
+    )
+
+    mc_chart = alt.Chart(mc_df.melt("Year")).mark_line(opacity=0.15).encode(
+        x="Year",
+        y="value:Q",
+        color=alt.value("#888"),
+        tooltip=["Year", "value"]
+    )
+
+    income_vs_expenses = alt.Chart(df).transform_fold(
+        ["Income", "Expenses"],
+        as_=["Category", "CHF"]
+    ).mark_line().encode(
+        x="Year",
+        y="CHF:Q",
+        color="Category:N",
+        tooltip=["Year", "Category", "CHF"]
+    )
+
+    st.altair_chart((mc_chart + base_chart).properties(title="📈 Net Worth Projection (Monte Carlo Simulation)"), use_container_width=True)
+    st.altair_chart(income_vs_expenses.properties(title="💵 Income vs Expenses"), use_container_width=True)
+
+    # --- Summary ---
+    st.subheader("📝 Summary & Recommendations")
+    st.markdown(f"""
+    - Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
+    - Estimated **income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
+    - Projected **expenses at that time**: `CHF {int(costs[-1]):,}`
+    """)
+
+    st.markdown("### ✅ Suggestions")
+    st.markdown("""
+    1. Keep increasing investment contributions to benefit from compounding.
+    2. Consider early retirement savings (3rd Pillar, ETFs) if not started.
+    3. Maintain a healthy gap between lifestyle cost and income growth.
+    """)
+
+    st.download_button("📥 Download Report (Mock)", "This will be a PDF report", file_name="projection_report.txt")
