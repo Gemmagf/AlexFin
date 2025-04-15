@@ -209,7 +209,7 @@ with tabs[3]:
         hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"])
         wants_to_travel = st.radio("✈️ Do you want to travel frequently in the future?", ["Yes", "No", "Sometimes"])
         career_field = st.selectbox("💼 Job Sector", ["Tech", "Finance", "Healthcare", "Education", "Other"])
-        current_salary = st.number_input("💵 Current Net Monthly Income (CHF)", 1000, 30000, 6000)
+        current_salary = st.number_input("💵 Current Net Monthly Income (CHF)", 0, 3000000, 70000)
 
     st.subheader("🏠 Living Expenses")
     rent = st.number_input("🏡 Monthly Rent or Mortgage", 0, 5000, 1500)
