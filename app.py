@@ -300,18 +300,21 @@ with tabs[3]:
     # --- Combined Visualization ---
     st.subheader("📊 Financial Projection Overview")
 
+    df["Year"] = df["Year"].astype(int)
+    mc_df["Year"] = mc_df["Year"].astype(int)
+
     base_chart = alt.Chart(df).mark_line().encode(
-        x="Year",
-        y=alt.Y("Net Worth (Base Case)", title="CHF"),
+        x=alt.X("Year:O", title="Age"),
+        y=alt.Y("Net Worth (Base Case):Q", title="Net Worth (CHF)"),
         color=alt.value("green"),
-        tooltip=["Year", "Net Worth (Base Case)"]
+        tooltip=[alt.Tooltip("Year:O", title="Age"), alt.Tooltip("Net Worth (Base Case):Q", title="Net Worth", format=",.0f")]
     )
 
-    mc_chart = alt.Chart(mc_df.melt("Year")).mark_line(opacity=0.15).encode(
-        x="Year",
-        y="value:Q",
-        color=alt.value("#888"),
-        tooltip=["Year", "value"]
+    mc_chart = alt.Chart(mc_df.melt("Year")).mark_line(opacity=0.1).encode(
+        x=alt.X("Year:O", title="Age"),
+        y=alt.Y("value:Q", title="Net Worth (CHF)"),
+        color=alt.value("#999"),
+        tooltip=[alt.Tooltip("Year:O", title="Age"), alt.Tooltip("value:Q", title="Net Worth", format=",.0f")]
     )
 
     income_vs_expenses_df = df[["Year", "Income", "Expenses"]].melt(id_vars="Year", var_name="Type", value_name="CHF")
@@ -320,22 +323,20 @@ with tabs[3]:
         x=alt.X("Year:O", title="Age"),
         y=alt.Y("CHF:Q", title="Annual Amount (CHF)"),
         color=alt.Color("Type:N", title=""),
-        tooltip=["Year", "Type", "CHF"]
+        tooltip=[alt.Tooltip("Year:O", title="Age"), "Type:N", alt.Tooltip("CHF:Q", format=",.0f")]
     ).properties(
         title="💵 Income vs Expenses"
     )
 
     st.altair_chart(income_vs_expenses_chart, use_container_width=True)
-
     st.altair_chart((mc_chart + base_chart).properties(title="📈 Net Worth Projection (Monte Carlo Simulation)"), use_container_width=True)
-
 
     # --- Summary ---
     st.subheader("📝 Summary & Recommendations")
     st.markdown(f"""
-    - Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
-    - Estimated **income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
-    - Projected **expenses at that time**: `CHF {int(costs[-1]):,}`
+    - 📊 Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
+    - 💼 Estimated **annual income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
+    - 💸 Projected **annual expenses at that time**: `CHF {int(costs[-1]):,}`
     """)
 
     st.markdown("### ✅ Suggestions")
