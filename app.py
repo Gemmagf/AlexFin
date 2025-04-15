@@ -206,8 +206,11 @@ with tabs[3]:
             has_kids = st.radio("👶 Do you have children?", ["No", "Yes", "Planning to have"])
             pets = st.multiselect("🐶 Pets", ["Dog", "Cat", "None", "Other"])
         with col2:
-            hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"])
-            wants_to_travel = st.radio("✈️ Travel frequency", ["Yes", "No", "Sometimes"])
+            default_hobbies = ["Gaming", "Travel"] if age < 25 else ["Reading", "Travel"]
+            default_travel = "Yes" if status == "Single" else "Sometimes"
+
+            hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"], default=default_hobbies)
+            wants_to_travel = st.radio("✈️ Travel frequency", ["Yes", "No", "Sometimes"], index=["Yes", "No", "Sometimes"].index(default_travel))
             career_field = st.selectbox("💼 Job Sector", ["Tech", "Finance", "Healthcare", "Education", "Other"])
             current_salary = st.number_input("💵 Current Monthly Income (CHF)", 0, 300000, 7000)
 
@@ -220,35 +223,76 @@ with tabs[3]:
         with col2:
             entertainment = st.number_input("🎭 Entertainment & Hobbies", 0, 5000, 400)
             healthcare = st.number_input("🩺 Healthcare & Insurance", 0, 2000, 350)
-            misc = st.number_input("🧾 Other Expenses", 0, 3000, 300)
+            misc = st.number_input("🪾 Other Expenses", 0, 3000, 300)
 
     total_expenses = rent + food + transport + entertainment + healthcare + misc
     st.markdown(f"**💸 Total Monthly Living Cost:** `CHF {total_expenses:,}`")
-    st.markdown("💭 _These preferences help personalize your financial roadmap more deeply._")
 
-    with st.expander("🧭 Life Goals & Future Plans"):
+    saving_rate = (current_salary * 12 - total_expenses * 12) / (current_salary * 12) if current_salary else 0
+    saving_percent = round(saving_rate * 100)
+
+    if saving_rate >= 0.2:
+        remark = "👏 You're saving a solid portion of your income — above average!"
+    elif saving_rate > 0:
+        remark = "👍 You're saving some — consider increasing your savings rate."
+    else:
+        remark = "⚠️ Your expenses exceed your income. Let's rebalance!"
+
+    st.markdown(f"💬 **Based on your inputs, you're saving approximately `{saving_percent}%` of your income.** {remark}")
+
+    if has_kids == "Yes":
+        childcare_costs = st.number_input("🧒 Monthly Childcare/Education Costs (CHF)", 0, 3000, 800)
+
+    with st.expander("🧱 Life Goals & Future Plans"):
         col1, col2 = st.columns(2)
         with col1:
             wants_children = st.radio("👶 Planning to have (more) children?", ["No", "Yes", "Maybe"])
             dream_trip = st.text_input("✈️ Dream travel destination or trip?")
-            travel_budget = st.slider("💸 Annual Travel Budget (CHF)", 0, 30000, 5000, step=500)
+            travel_budget_range = st.select_slider(
+                "💸 Annual Travel Budget",
+                options=["None", "Low (<CHF 2,000)", "Moderate (CHF 2,000–10,000)", "High (>CHF 10,000)"],
+                value="Moderate (CHF 2,000–10,000)"
+            )
+            travel_budget_map = {
+                "None": 0,
+                "Low (<CHF 2,000)": 1500,
+                "Moderate (CHF 2,000–10,000)": 6000,
+                "High (>CHF 10,000)": 15000
+            }
+            travel_budget_chf = travel_budget_map[travel_budget_range]
+
             major_purchase = st.selectbox("🚗 Next big purchase you're planning?", ["Home", "Car", "Education", "Startup", "None"])
         with col2:
             career_goal = st.text_area("💼 Career ambitions or job changes in the next 5–10 years?")
             lifestyle_upgrades = st.multiselect("🌟 Desired lifestyle upgrades", ["Luxury Living", "Work Flexibility", "More Leisure Time", "Move Abroad", "None"])
             wellness_goals = st.radio("🧘‍♀️ Focus on wellness or mental health?", ["Yes", "No", "Trying to prioritize"])
 
-
     with st.expander("🎯 Goals & Investment Preferences"):
         wants_to_buy_house = st.radio("🏠 Planning to buy a house?", ["Yes", "No", "Maybe"])
         retirement_age = st.slider("🎉 Desired Retirement Age", 55, 70, 65)
-        owns_home = st.radio("🏘️ Owns home now?", ["Yes", "No"])
+        owns_home = st.radio("🏨 Owns home now?", ["Yes", "No"])
         has_3a = st.radio("💼 Has 3rd Pillar?", ["Yes", "No"])
         has_etfs = st.radio("📈 Invests in ETFs/Index Funds?", ["Yes", "No"])
         other_assets = st.multiselect("💰 Other Assets", ["Real Estate", "Crypto", "Business", "High-yield Savings", "None"])
         wants_to_invest_more = st.radio("➕ Increase Investment?", ["Yes", "No", "Maybe"])
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
-    
+
+    # Progress & Gamification
+    st.markdown("---")
+    st.subheader("🌟 Profile Completion Summary")
+
+    completed_fields = sum([
+        bool(age), bool(status), bool(current_salary), bool(rent),
+        bool(initial_savings), bool(wants_to_buy_house), bool(hobbies)
+    ])
+    total_fields = 10
+    progress = int((completed_fields / total_fields) * 100)
+
+    st.progress(progress)
+    st.success(f"🎉 You’ve completed {progress}% of your financial profile!")
+
+    score = min(10, round((saving_rate * 10 + (progress / 10)) / 2, 1))
+    st.markdown(f"🪙 **Your Future Stability Score:** `{score}/10`")
 
     inflation_rate = 1.6  # e.g., average Swiss inflation
     salary_growth_rate = 2.2  # average wage growth
