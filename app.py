@@ -195,7 +195,6 @@ with tabs[2]:
     st.write("Coming soon: downloadable guides, checklists and calculators!")
 
 # --- User Tab ---
-# --- User Tab ---
 with tabs[3]:
     st.header("🌱 Your Future Planner")
 
@@ -249,16 +248,14 @@ with tabs[3]:
         wants_to_invest_more = st.radio("➕ Increase Investment?", ["Yes", "No", "Maybe"])
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
 
-    # --- Assumptions with Light AI Adjustment ---
-    inflation_rate = 1.6 + (0.3 if "Move Abroad" in lifestyle_upgrades else 0.0)
-    salary_growth_rate = 2.2 + (0.5 if career_goal else 0.0)
-    investment_return = 4.8  # realistic long-term return
-    forecast_years = 25
-
-    # --- Calculations ---
     import pandas as pd
     import numpy as np
     import altair as alt
+
+    inflation_rate = 1.6
+    salary_growth_rate = 2.2
+    investment_return = 4.8
+    forecast_years = 25
 
     years = list(range(0, forecast_years + 1))
     age_projection = [age + y for y in years]
@@ -268,30 +265,45 @@ with tabs[3]:
     def grow(value, rate):
         return [value * ((1 + rate / 100) ** y) for y in years]
 
-    income = grow(current_salary * 12, salary_growth_rate)
-    base_costs = grow(total_expenses * 12, inflation_rate)
+    # --- Hobby Costs AI Mapping ---
+    hobby_cost_map = {"Travel": 6000, "Sports": 2000, "Gaming": 1000, "Reading": 500, "Art": 1200, "Other": 1500}
+    total_hobby_expense = sum([hobby_cost_map[h] for h in hobbies]) if hobbies else 0
 
-    # Add travel + children cost + pets
-    travel_addon = [travel_budget for _ in years]
-    child_costs = [15000 + y * 500 for y in years] if has_kids == "Yes" else [0] * len(years)
-    pet_costs = [600] * len(years) if any(p != "None" for p in pets) else [0] * len(years)
-    lifestyle_spike = [3000] * len(years) if "Luxury Living" in lifestyle_upgrades else [0] * len(years)
+    # --- AI Salary Adjustment Based on Ambition Text ---
+    if "startup" in career_goal.lower():
+        career_multiplier = 1.8
+    elif "promotion" in career_goal.lower():
+        career_multiplier = 1.5
+    elif "change" in career_goal.lower():
+        career_multiplier = 1.2
+    else:
+        career_multiplier = 1.0
 
-    total_additional_costs = [sum(x) for x in zip(travel_addon, child_costs, pet_costs, lifestyle_spike)]
-    costs = [a + b for a, b in zip(base_costs, total_additional_costs)]
+    adjusted_salary_growth = salary_growth_rate * career_multiplier
+
+    income = grow(current_salary * 12, adjusted_salary_growth)
+    costs = grow(total_expenses * 12 + total_hobby_expense + travel_budget, inflation_rate)
+
+    if has_kids == "Yes" or wants_children == "Yes":
+        child_costs = [8000 if age + y < 6 else 12000 for y in years]
+    else:
+        child_costs = [0] * len(years)
 
     df["Income"] = income
-    df["Expenses"] = costs
+    df["Expenses"] = [cost + child_costs[i] for i, cost in enumerate(costs)]
+
+    if wellness_goals in ["Yes", "Trying to prioritize"]:
+        df["Expenses"] *= 1.15
 
     net_worth = [initial_savings]
     for i in range(1, len(years)):
-        surplus = income[i] - costs[i]
+        surplus = income[i] - df["Expenses"][i]
         investment_growth = net_worth[-1] * (1 + investment_return / 100)
         net_worth.append(investment_growth + surplus)
 
     df["Net Worth (Base Case)"] = net_worth
 
-    # Monte Carlo
+    # Monte Carlo Sim
     simulations = 50
     mc_df = pd.DataFrame({"Year": age_projection})
     np.random.seed(42)
@@ -299,7 +311,7 @@ with tabs[3]:
         net = [initial_savings]
         for j in range(1, len(years)):
             rand_income = income[j] * np.random.normal(1, 0.05)
-            rand_cost = costs[j] * np.random.normal(1, 0.05)
+            rand_cost = df["Expenses"][j] * np.random.normal(1, 0.05)
             rand_return = np.random.normal(investment_return / 100, 0.03)
             surplus = max(0, rand_income - rand_cost)
             new_val = net[-1] * (1 + rand_return) + surplus
@@ -329,30 +341,32 @@ with tabs[3]:
         y=alt.Y("CHF:Q", title="Annual Amount (CHF)"),
         color=alt.Color("Type:N", title=""),
         tooltip=["Year", "Type", "CHF"]
-    ).properties(
-        title="💵 Income vs Expenses"
-    )
+    ).properties(title="💵 Income vs Expenses")
 
     st.altair_chart(income_vs_expenses_chart, use_container_width=True)
     st.altair_chart((mc_chart + base_chart).properties(title="📈 Net Worth Projection (Monte Carlo Simulation)"), use_container_width=True)
 
-    # --- Summary & Stability Score ---
+    # --- Summary ---
     st.subheader("📝 Summary & Recommendations")
-    score = round((net_worth[-1] / (income[-1] * 10)) * 10, 1)
-
     st.markdown(f"""
     - Final projected **net worth**: `CHF {int(net_worth[-1]):,}`
     - Estimated **income at age {age + forecast_years}**: `CHF {int(income[-1]):,}`
-    - Projected **expenses at that time**: `CHF {int(costs[-1]):,}`
-    - 🧠 **Future Stability Score**: `{score} / 10`
+    - Projected **expenses at that time**: `CHF {int(df['Expenses'].iloc[-1]):,}`
     """)
 
+    # Stability Score
+    savings_rate = (income[0] - total_expenses * 12) / income[0]
+    score = 5
+    score += 1 if has_3a == "Yes" else 0
+    score += 1 if has_etfs == "Yes" else 0
+    score += 1 if savings_rate > 0.2 else 0
+    score += 1 if owns_home == "Yes" else 0
+    score = min(score, 10)
+
     st.markdown("### ✅ Suggestions")
-    st.markdown("""
+    st.markdown(f"""
     1. Keep increasing investment contributions to benefit from compounding.
     2. Consider early retirement savings (3rd Pillar, ETFs) if not started.
     3. Maintain a healthy gap between lifestyle cost and income growth.
+    4. 🪙 Your **Future Stability Score**: `{score}/10`
     """)
-
-    st.success("🎉 You’ve completed your financial profile!")
-    st.download_button("📥 Download Report (Mock)", "This will be a PDF report", file_name="projection_report.txt")
