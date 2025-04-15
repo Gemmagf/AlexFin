@@ -196,54 +196,47 @@ with tabs[2]:
 
 # --- User Tab ---
 with tabs[3]:
-    st.title("📈 Personal Finance Forecast – Swiss Style")
+    st.header("🌱 Your Future Planner")
 
-    st.write("Use this calculator to estimate your retirement capital based on your current savings, contributions, and investment strategy in Switzerland.")
+    st.subheader("👤 Personal & Lifestyle Info")
+    col1, col2 = st.columns(2)
+    with col1:
+        age = st.number_input("🎂 Age", 18, 70, 30)
+        status = st.selectbox("💍 Relationship Status", ["Single", "Married", "Divorced", "Widowed"])
+        has_kids = st.radio("👶 Do you have children?", ["No", "Yes", "Planning to have"])
+        pets = st.multiselect("🐶 Pets", ["Dog", "Cat", "None", "Other"])
+    with col2:
+        hobbies = st.multiselect("🎨 Hobbies", ["Travel", "Sports", "Reading", "Gaming", "Art", "Other"])
+        wants_to_travel = st.radio("✈️ Do you want to travel frequently in the future?", ["Yes", "No", "Sometimes"])
+        career_field = st.selectbox("💼 Job Sector", ["Tech", "Finance", "Healthcare", "Education", "Other"])
+        current_salary = st.number_input("💵 Current Net Monthly Income (CHF)", 1000, 30000, 6000)
 
-    st.subheader("1. Personal Details")
-    age = st.slider("Current Age", 18, 65, 30)
-    retirement_age = st.slider("Target Retirement Age", age+1, 70, 65)
-    years_to_invest = retirement_age - age
+    st.subheader("🏠 Living Expenses")
+    rent = st.number_input("🏡 Monthly Rent or Mortgage", 0, 5000, 1500)
+    food = st.number_input("🍽️ Monthly Food Expenses", 0, 3000, 600)
+    transport = st.number_input("🚗 Monthly Transport (car/train/fuel)", 0, 2000, 300)
+    entertainment = st.number_input("🎭 Entertainment & Hobbies", 0, 2000, 400)
+    healthcare = st.number_input("🩺 Healthcare & Insurance", 0, 1000, 350)
+    misc = st.number_input("🧾 Other Regular Expenses", 0, 2000, 300)
 
-    st.subheader("2. Financial Inputs")
-    current_savings = st.number_input("Current Savings (CHF)", min_value=0, value=20000, step=1000)
-    monthly_contribution = st.number_input("Monthly Contribution (CHF)", min_value=0, value=500, step=50)
+    total_expenses = rent + food + transport + entertainment + healthcare + misc
 
-    st.subheader("3. Pillar Type & Investment Strategy")
-    pillar_type = st.selectbox("Choose Pillar", ["Pillar 3a - Bank", "Pillar 3a - Insurance", "ETF Portfolio", "Mixed"])
+    st.markdown(f"**💸 Total Monthly Living Cost:** CHF {total_expenses:,}")
 
-    investment_profile = st.radio("Investment Profile", ["Conservative (3%)", "Balanced (5%)", "Aggressive (7%)"])
+    st.subheader("🎯 Life Goals")
+    wants_to_buy_house = st.radio("🏡 Want to own a house in future?", ["Yes", "No", "Maybe"])
+    retirement_age = st.slider("🎉 Desired Retirement Age", 55, 70, 65)
+    wants_early_retirement = st.radio("⏳ Interested in early retirement?", ["No", "Yes"])
 
-    return_rate = {
-        "Conservative (3%)": 0.03,
-        "Balanced (5%)": 0.05,
-        "Aggressive (7%)": 0.07
-    }[investment_profile]
-
-    st.markdown("---")
-    st.subheader("📊 Projection Results")
-
-    months = years_to_invest * 12
-    balances = []
-    total = current_savings
-    for i in range(months):
-        total = total * (1 + return_rate / 12) + monthly_contribution
-        balances.append(total)
-
-    df = pd.DataFrame({
-        "Year": [age + i//12 for i in range(months)],
-        "Projected Balance": balances
-    })
-
-    chart = alt.Chart(df).mark_line(point=True).encode(
-        x="Year:O",
-        y=alt.Y("Projected Balance", title="CHF"),
-        tooltip=["Year", "Projected Balance"]
-    ).properties(
-        title="Projected Pension Capital Over Time"
-    )
-
-    st.altair_chart(chart, use_container_width=True)
-
-    st.success(f"Estimated capital by age {retirement_age}: CHF {int(balances[-1]):,}")
-    st.markdown("_Disclaimer: This is a simplified projection. Returns may vary._")
+    if st.button("➡️ Continue to Projections"):
+        st.session_state["user_profile"] = {
+            "age": age, "status": status, "kids": has_kids, "pets": pets,
+            "hobbies": hobbies, "career": career_field, "income": current_salary,
+            "expenses": total_expenses, "goals": {
+                "travel": wants_to_travel,
+                "house": wants_to_buy_house,
+                "retire_age": retirement_age,
+                "early_retire": wants_early_retirement
+            }
+        }
+        st.success("Profile saved. Move on to projections and investment analysis.")
