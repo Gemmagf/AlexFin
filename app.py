@@ -195,7 +195,8 @@ with tabs[2]:
     st.write("Coming soon: downloadable guides, checklists and calculators!")
 
 # --- User Tab ---
-st.header("🌱 Your Future Planner")
+with tabs[3]:
+    st.header("🌱 Your Future Planner")
 
     with st.expander("👤 Personal & Lifestyle Information"):
         col1, col2 = st.columns(2)
