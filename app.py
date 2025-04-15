@@ -196,3 +196,54 @@ with tabs[2]:
 
 # --- User Tab ---
 with tabs[3]:
+    st.title("📈 Personal Finance Forecast – Swiss Style")
+
+    st.write("Use this calculator to estimate your retirement capital based on your current savings, contributions, and investment strategy in Switzerland.")
+
+    st.subheader("1. Personal Details")
+    age = st.slider("Current Age", 18, 65, 30)
+    retirement_age = st.slider("Target Retirement Age", age+1, 70, 65)
+    years_to_invest = retirement_age - age
+
+    st.subheader("2. Financial Inputs")
+    current_savings = st.number_input("Current Savings (CHF)", min_value=0, value=20000, step=1000)
+    monthly_contribution = st.number_input("Monthly Contribution (CHF)", min_value=0, value=500, step=50)
+
+    st.subheader("3. Pillar Type & Investment Strategy")
+    pillar_type = st.selectbox("Choose Pillar", ["Pillar 3a - Bank", "Pillar 3a - Insurance", "ETF Portfolio", "Mixed"])
+
+    investment_profile = st.radio("Investment Profile", ["Conservative (3%)", "Balanced (5%)", "Aggressive (7%)"])
+
+    return_rate = {
+        "Conservative (3%)": 0.03,
+        "Balanced (5%)": 0.05,
+        "Aggressive (7%)": 0.07
+    }[investment_profile]
+
+    st.markdown("---")
+    st.subheader("📊 Projection Results")
+
+    months = years_to_invest * 12
+    balances = []
+    total = current_savings
+    for i in range(months):
+        total = total * (1 + return_rate / 12) + monthly_contribution
+        balances.append(total)
+
+    df = pd.DataFrame({
+        "Year": [age + i//12 for i in range(months)],
+        "Projected Balance": balances
+    })
+
+    chart = alt.Chart(df).mark_line(point=True).encode(
+        x="Year:O",
+        y=alt.Y("Projected Balance", title="CHF"),
+        tooltip=["Year", "Projected Balance"]
+    ).properties(
+        title="Projected Pension Capital Over Time"
+    )
+
+    st.altair_chart(chart, use_container_width=True)
+
+    st.success(f"Estimated capital by age {retirement_age}: CHF {int(balances[-1]):,}")
+    st.markdown("_Disclaimer: This is a simplified projection. Returns may vary._")
