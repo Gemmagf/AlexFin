@@ -224,6 +224,20 @@ with tabs[3]:
 
     total_expenses = rent + food + transport + entertainment + healthcare + misc
     st.markdown(f"**💸 Total Monthly Living Cost:** `CHF {total_expenses:,}`")
+    st.markdown("💭 _These preferences help personalize your financial roadmap more deeply._")
+
+    with st.expander("🧭 Life Goals & Future Plans"):
+    col1, col2 = st.columns(2)
+    with col1:
+        wants_children = st.radio("👶 Planning to have (more) children?", ["No", "Yes", "Maybe"])
+        dream_trip = st.text_input("✈️ Dream travel destination or trip?")
+        travel_budget = st.slider("💸 Annual Travel Budget (CHF)", 0, 30000, 5000, step=500)
+        major_purchase = st.selectbox("🚗 Next big purchase you're planning?", ["Home", "Car", "Education", "Startup", "None"])
+    with col2:
+        career_goal = st.text_area("💼 Career ambitions or job changes in the next 5–10 years?")
+        lifestyle_upgrades = st.multiselect("🌟 Desired lifestyle upgrades", ["Luxury Living", "Work Flexibility", "More Leisure Time", "Move Abroad", "None"])
+        wellness_goals = st.radio("🧘‍♀️ Focus on wellness or mental health?", ["Yes", "No", "Trying to prioritize"])
+
 
     with st.expander("🎯 Goals & Investment Preferences"):
         wants_to_buy_house = st.radio("🏠 Planning to buy a house?", ["Yes", "No", "Maybe"])
@@ -235,15 +249,7 @@ with tabs[3]:
         wants_to_invest_more = st.radio("➕ Increase Investment?", ["Yes", "No", "Maybe"])
         initial_savings = st.number_input("💰 Current Savings & Investments (CHF)", 0, 1_000_000, 20000)
 
-    with st.expander("📈 Projection Assumptions"):
-        col1, col2 = st.columns(2)
-        with col1:
-            inflation_rate = st.slider("📉 Inflation Rate (%)", 0.0, 5.0, 1.5, 0.1)
-            salary_growth_rate = st.slider("📈 Salary Growth (%)", 0.0, 10.0, 3.0, 0.1)
-        with col2:
-            investment_return = st.slider("📊 Investment Return (%)", 0.0, 10.0, 5.0, 0.1)
-            forecast_years = st.slider("⏳ Projection Years", 5, 40, 25)
-
+    
     # --- Calculations ---
     import pandas as pd
     import numpy as np
