@@ -81,7 +81,7 @@ except FileNotFoundError:
     st.sidebar.markdown("👤 Alex – your Swiss finance buddy")
 
 # --- Navigation Tabs ---
-tabs = st.tabs([lang["about_me"], lang["topics"], lang["resources"], lang["user"])
+tabs = st.tabs([lang["about_me"], lang["topics"], lang["resources"], lang["user"]])
 
 # --- About Tab ---
 with tabs[0]:
