@@ -403,7 +403,7 @@ with tabs[3]:
     st.success("💡 Tip: You can change your provider **once a year** by Nov 30.")
 
 # --- Taxes Tab ---
-with tabs[3]:
+with tabs[4]:
     st.header("📌 Tax Basics in Switzerland")  # Taxes in Switzerland
 
     col1, col2 = st.columns(2)
