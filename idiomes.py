@@ -9,7 +9,7 @@ translations = {
     "topics": "📘 Financial Topics",
     "resources": "📂 Free Tools & Guides",
     "user": "📈 Personal Financial Projection",
-    "health":"🏥 Health Insurance (Krankenkasse) in Switzerland"
+    "health":"🏥 Health Insurance (Krankenkasse) in Switzerland",
     "book_call": "📅 Book a free call",
     "planner_title": "🌱 Your Future Planner",
     "personal_info": "👤 Personal Information & Lifestyle",
