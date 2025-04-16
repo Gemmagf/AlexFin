@@ -354,6 +354,30 @@ with tabs[3]:
     })
     st.table(addons)
 
+  
+
+    block_data = pd.DataFrame({
+        "Layer": ["Basic", "Franchise", "Model", "Add-ons"],
+        "Cost Impact": [1, 2, 1.5, 2.5],
+        "Description": [
+            "Mandatory basic health insurance",
+            "Deductible (your risk)",
+            "Access model (Telmed, HMO, etc.)",
+            "Optional: dental, vision, etc."
+        ]
+    })
+
+    block_chart = alt.Chart(block_data).mark_bar(size=40).encode(
+        x=alt.X("Layer", sort=None),
+        y="Cost Impact",
+        tooltip=["Layer", "Description", "Cost Impact"]
+    ).properties(
+        title="🧱 Insurance Plan Layers – Cost Impact"
+    )
+
+    st.altair_chart(block_chart, use_container_width=True)
+
+
     # Resources
     st.subheader("📚 Official Resources & Comparisons")
     st.markdown("""
@@ -362,5 +386,18 @@ with tabs[3]:
     - [🧮 Comparis Comparison Tool](https://en.comparis.ch/krankenkassen/default)
     - [🏥 Helsana](https://www.helsana.ch) | [🏥 CSS](https://www.css.ch)
     """)
+
+    st.subheader("💸 Live Premium Preview")
+
+    if st.button("🔄 Fetch Example Offers"):
+        with st.spinner("Fetching offers from Comparis.ch..."):
+            try:
+                response = requests.get("https://en.comparis.ch/krankenkassen/default")
+                soup = BeautifulSoup(response.content, "html.parser")
+                offer_example = soup.find("h3").text  # Placeholder: adjust based on site structure
+                st.success("✔️ Live offer example:")
+                st.write(offer_example)
+            except Exception as e:
+                st.error("⚠️ Failed to fetch data. Comparis might be blocking direct access.")
 
     st.success("💡 Tip: You can change your provider **once a year** by Nov 30.")
