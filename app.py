@@ -31,7 +31,7 @@ except FileNotFoundError:
     st.sidebar.markdown("👤 Alex – your Swiss finance buddy")
 
 # --- Navigation Tabs ---
-tabs = st.tabs([lang["about_me"], lang["topics"],  lang["user"]])
+tabs = st.tabs([lang["about_me"], lang["topics"],  lang["user"], lang["health"] ])
 
 # --- About Tab ---
 with tabs[0]:
@@ -300,3 +300,43 @@ with tabs[2]:
     3. Maintain a healthy gap between lifestyle cost and income growth.
     4. 🪙 Your **Future Stability Score**: `{score}/10`
     """)
+
+# -------- Helth -----
+with tabs[3]:
+    st.subheader("📚 Official Resources")
+    st.markdown("""
+    - [Federal Office of Public Health (BAG)](https://www.bag.admin.ch)
+    - [Priminfo - Government Comparison Tool](https://www.priminfo.admin.ch)
+    - [Comparis Insurance Comparison](https://en.comparis.ch/krankenkassen/default)
+    - [Helsana](https://www.helsana.ch)
+    - [CSS](https://www.css.ch)
+    """)
+
+    st.subheader("💰 Scraped Offers (Mock Example)")
+
+    # You can replace this mock with scraped data later
+    offers = pd.DataFrame({
+        "Provider": ["CSS", "Helsana", "Sanitas"],
+        "Model": ["Telmed", "HMO", "Standard"],
+        "Monthly Premium": ["CHF 220", "CHF 250", "CHF 300"]
+    })
+    st.dataframe(offers)
+
+    st.divider()
+
+    st.subheader("➕ Supplemental Insurance Add-ons")
+
+    addons = pd.DataFrame({
+        "Add-on": ["Dental", "Vision", "Private Room", "Alternative Medicine", "Abroad Coverage"],
+        "Benefit": [
+            "Covers dental cleanings, braces, fillings",
+            "Covers glasses, lenses, exams",
+            "Private room and doctor in hospital",
+            "Homeopathy, acupuncture, osteopathy",
+            "Covers treatment abroad or during travel"
+        ],
+        "Typical Cost/Month": ["CHF 20–60", "CHF 10–30", "CHF 40–120", "CHF 15–40", "CHF 10–20"]
+    })
+    st.table(addons)
+
+    st.info("💡 Tip: Always compare annually — switching providers can save hundreds.")
