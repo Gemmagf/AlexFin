@@ -303,40 +303,64 @@ with tabs[2]:
 
 # -------- Helth -----
 with tabs[3]:
-    st.subheader("📚 Official Resources")
+    
+    st.header("🏥 Krankenkasse – Build Your Swiss Health Insurance Plan")
+
+    st.markdown("Think of your health coverage like a tower of blocks – each block adds a layer of protection or cost optimization.")
+
+    # Basic Coverage Block
+    st.subheader("🔒 Basic Insurance (Grundversicherung)")
     st.markdown("""
-    - [Federal Office of Public Health (BAG)](https://www.bag.admin.ch)
-    - [Priminfo - Government Comparison Tool](https://www.priminfo.admin.ch)
-    - [Comparis Insurance Comparison](https://en.comparis.ch/krankenkassen/default)
-    - [Helsana](https://www.helsana.ch)
-    - [CSS](https://www.css.ch)
+    - **Mandatory for everyone** in Switzerland (residents & expats)
+    - Covers essential care: doctor visits, hospital, emergencies, maternity, etc.
+    - All insurers offer the same basic coverage – only price & model differ.
     """)
 
-    st.subheader("💰 Scraped Offers (Mock Example)")
+    # Franchise Block
+    st.subheader("🎯 Deductible (Franchise Block)")
+    st.markdown("""
+    - This is **how much you pay out-of-pocket before insurance kicks in**
+    - Choose between **CHF 300** and **CHF 2,500**
+    - Higher franchise = lower monthly premiums (but more risk)
+    - Example:
+        - CHF 300 franchise = high premium, low risk
+        - CHF 2500 franchise = low premium, high risk
+    """)
 
-    # You can replace this mock with scraped data later
-    offers = pd.DataFrame({
-        "Provider": ["CSS", "Helsana", "Sanitas"],
-        "Model": ["Telmed", "HMO", "Standard"],
-        "Monthly Premium": ["CHF 220", "CHF 250", "CHF 300"]
-    })
-    st.dataframe(offers)
+    # Model Block
+    st.subheader("🧭 Insurance Model (Care Access)")
+    st.markdown("""
+    | Model    | Access Rules              | Cost Impact | Notes |
+    |----------|---------------------------|-------------|-------|
+    | **Standard** | See any doctor anytime     | 💰 Highest    | Max freedom |
+    | **Telmed**   | Call first for advice      | 💸 Lower       | Must follow phone advice |
+    | **HMO**      | Must go to specific doctor | 💸 Lower       | Limited doctor choice |
+    """)
 
-    st.divider()
-
-    st.subheader("➕ Supplemental Insurance Add-ons")
+    # Add-ons Block
+    st.subheader("🧩 Supplemental Add-ons (Zusatzversicherung)")
+    st.markdown("Optional extras to improve your care & comfort. Here's a breakdown:")
 
     addons = pd.DataFrame({
-        "Add-on": ["Dental", "Vision", "Private Room", "Alternative Medicine", "Abroad Coverage"],
-        "Benefit": [
-            "Covers dental cleanings, braces, fillings",
-            "Covers glasses, lenses, exams",
-            "Private room and doctor in hospital",
-            "Homeopathy, acupuncture, osteopathy",
-            "Covers treatment abroad or during travel"
+        "🧱 Add-on": ["🦷 Dental", "👓 Vision", "🛏️ Private Hospital Room", "🌿 Alternative Medicine", "🌍 Travel Abroad"],
+        "What It Covers": [
+            "Cleanings, braces, fillings, surgeries",
+            "Glasses, contacts, optometry exams",
+            "Single room, private doctor, comfort upgrades",
+            "Homeopathy, acupuncture, osteopathy, etc.",
+            "Coverage for emergencies abroad"
         ],
-        "Typical Cost/Month": ["CHF 20–60", "CHF 10–30", "CHF 40–120", "CHF 15–40", "CHF 10–20"]
+        "💰 Typical Cost/Month": ["CHF 20–60", "CHF 10–30", "CHF 40–120", "CHF 15–40", "CHF 10–20"]
     })
     st.table(addons)
 
-    st.info("💡 Tip: Always compare annually — switching providers can save hundreds.")
+    # Resources
+    st.subheader("📚 Official Resources & Comparisons")
+    st.markdown("""
+    - [🇨🇭 Federal Office of Public Health (BAG)](https://www.bag.admin.ch)
+    - [📊 Priminfo Admin Tool](https://www.priminfo.admin.ch)
+    - [🧮 Comparis Comparison Tool](https://en.comparis.ch/krankenkassen/default)
+    - [🏥 Helsana](https://www.helsana.ch) | [🏥 CSS](https://www.css.ch)
+    """)
+
+    st.success("💡 Tip: You can change your provider **once a year** by Nov 30.")
