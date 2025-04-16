@@ -460,6 +460,59 @@ with tabs[4]:
     else:
         st.info("Tick above what you might deduct to estimate savings.")
 
+
+
+    st.subheader("🧮 Practice Your Tax Filing")
+
+    with st.expander("📝 Simulate a Tax Declaration"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            permit = st.selectbox("Permit Type", ["B", "C", "Swiss"])
+            canton = st.selectbox("Canton of Residence", ["Zurich", "Geneva", "Vaud", "Bern", "Basel-Stadt", "Other"])
+            gross_income = st.number_input("💰 Annual Gross Income (CHF)", 10000, 500000, 85000, step=1000)
+            has_3a = st.radio("Do you contribute to a Pillar 3a account?", ["Yes", "No"])
+            transport_deduction = st.number_input("Transport Costs (CHF)", 0, 10000, 1500)
+            meal_deduction = st.number_input("Work Meals / Allowances (CHF)", 0, 8000, 2000)
+    
+        with col2:
+            course_deduction = st.number_input("Educational / Skill Courses (CHF)", 0, 12000, 3000)
+            child_care = st.number_input("Childcare Expenses (CHF)", 0, 15000, 0)
+            home_office = st.number_input("Home Office Deduction (CHF)", 0, 3000, 1000)
+            other_deductions = st.number_input("Other Deductible Expenses (CHF)", 0, 10000, 0)
+
+        total_deductions = 0
+        if has_3a == "Yes":
+            max_3a = 7056 if permit != "C" else 35280  # Self-employed max
+            pillar_3a = st.slider("Pillar 3a Contribution (CHF)", 0, max_3a, 3500)
+            total_deductions += pillar_3a
+        else:
+            pillar_3a = 0
+
+        # Add everything
+        total_deductions += transport_deduction + meal_deduction + course_deduction + child_care + home_office + other_deductions
+        taxable_income = gross_income - total_deductions
+
+        # Simplified estimate of tax rate by permit/canton (dummy values)
+        tax_rate = 0.11 if canton == "Zurich" else 0.13 if canton == "Geneva" else 0.10
+        if permit == "B" and gross_income <= 120000:
+            source_tax = taxable_income * tax_rate
+            tax_info = f"Your tax is at source: **~CHF {int(source_tax):,}**"
+        else:
+            estimated_tax = taxable_income * tax_rate
+            tax_info = f"Estimated tax to pay: **~CHF {int(estimated_tax):,}**"
+
+        st.success(f"✅ Net Taxable Income: CHF {int(taxable_income):,}")
+        st.info(tax_info)
+        st.markdown(f"📌 Based on simplified logic. Use your canton’s calculator for official numbers.")
+
+    st.markdown("---")
+    st.markdown("📚 **Official Resources:**")
+    st.markdown("- [Swiss Tax Admin Portal](https://www.estv.admin.ch/estv/en/home.html)")
+    st.markdown("- [Tax at Source (Zurich)](https://www.steueramt.zh.ch/internet/finanzdirektion/ksta/en/steuerpflicht-quellensteuer.html)")
+    st.markdown("- [Pillar 3a Info (Finpension)](https://finpension.ch/en/3a/)")
+
+
     st.subheader("📝 Notes")
     st.markdown("""
     - Filing deadline varies by canton, typically **March 31** unless extended.
@@ -469,3 +522,5 @@ with tabs[4]:
     🔗 [Online Tax Software by Canton](https://www.ch.ch/en/taxes/tax-return/)
     🔗 [Crypto & Wealth Declaration (Moneyland)](https://www.moneyland.ch/en/cryptocurrency-taxes-switzerland-guide)
     """)
+
+
