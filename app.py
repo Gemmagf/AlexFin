@@ -31,7 +31,7 @@ except FileNotFoundError:
     st.sidebar.markdown("👤 Alex – your Swiss finance buddy")
 
 # --- Navigation Tabs ---
-tabs = st.tabs([lang["about_me"], lang["topics"],  lang["user"], lang["health"] ])
+tabs = st.tabs([lang["about_me"], lang["topics"],  lang["user"], lang["health"], lang["tax"] ])
 
 # --- About Tab ---
 with tabs[0]:
@@ -401,3 +401,62 @@ with tabs[3]:
                 st.error("⚠️ Failed to fetch data. Comparis might be blocking direct access.")
 
     st.success("💡 Tip: You can change your provider **once a year** by Nov 30.")
+
+# --- Taxes Tab ---
+with tabs[3]:
+    st.header("📌 Tax Basics in Switzerland")  # Taxes in Switzerland
+
+    col1, col2 = st.columns(2)
+    with col1:
+        permit_type = st.selectbox("Permit Type", ["B", "C", "L", "Swiss Citizen"])
+        canton = st.selectbox("Canton", ["ZH", "GE", "VD", "BE", "TI", "Other"])
+        marital_status = st.radio("Marital Status", ["Single", "Married"])
+    with col2:
+        has_kids = st.radio("Children?", ["Yes", "No"])
+        religion = st.selectbox("Religious Affiliation", ["None", "Catholic", "Protestant"])
+        annual_salary = st.number_input("Annual Gross Salary (CHF)", 10000, 500000, 80000, step=1000)
+
+    # Tax calculation logic
+    base_tax_rate = {
+        "ZH": 10, "GE": 12, "VD": 11, "BE": 9, "TI": 10.5, "Other": 10
+    }
+
+    if permit_type in ["B", "L"]:
+        taxed_at_source = True
+        source_note = "💡 With Permit B/L, your employer deducts taxes at source (Quellensteuer)."
+    else:
+        taxed_at_source = False
+        source_note = "💡 With Permit C or Swiss citizenship, you file a full tax return (self-declared)."
+
+    rate = base_tax_rate.get(canton, 10)
+    if marital_status == "Married":
+        rate *= 0.85
+    if has_kids == "Yes":
+        rate *= 0.9
+    if religion != "None":
+        rate += 1.2
+
+    estimated_tax = annual_salary * (rate / 100)
+
+    st.subheader("📊 Estimated Tax Summary")
+    st.markdown(source_note)
+    st.markdown(f"""
+    - 💰 **Effective Tax Rate**: `{rate:.2f}%`
+    - 🧾 **Estimated Annual Taxes**: `CHF {int(estimated_tax):,}`
+    """)
+
+    with st.expander("📌 Tax Basics in Switzerland"):
+        st.markdown("""
+        - Federal, cantonal, and municipal tax layers
+        - Permit B/L: **Withholding tax**
+        - Permit C/Swiss: **Tax return filing**
+        - 📆 Deadlines vary by canton, usually **March 31** for returns
+        - 💡 Church tax applies unless you deregister religious affiliation
+        """)
+
+    with st.expander("🔍 Official Tools"):
+        st.markdown("""
+        - [Priminfo](https://www.priminfo.admin.ch) – for insurance comparison  
+        - [Zürich Tax Calculator](https://www.steueramt.zh.ch/internet/finanzdirektion/ksta/en/steuerrechner.html)  
+        - [Comparis Tax Calculator](https://en.comparis.ch/steuern/steuervergleich/default)  
+        """)
