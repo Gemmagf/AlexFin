@@ -183,11 +183,110 @@ with tabs[2]:
         wants_to_invest_more = st.radio(lang["planner_inputs"]["wants_to_invest_more"], lang["planner_inputs"]["wants_to_invest_more_options"])
         initial_savings = st.number_input(lang["planner_inputs"]["initial_savings"], 0, 1_000_000, 20000)
 
+    # --- Confirmation Card ---
+    if st.button(lang["confirm_button"]):
+        with st.expander(lang["planner_summary"]):
+            st.markdown(f"**Age**: {age}")
+            st.markdown(f"**Relationship Status**: {status}")
+            st.markdown(f"**Kids**: {has_kids}")
+            st.markdown(f"**Career Field**: {career_field}")
+            st.markdown(f"**Current Salary**: CHF {current_salary}")
+            st.markdown(f"**Total Expenses**: CHF {total_expenses}")
+
+            # Buttons for user actions
+            confirm_button = st.button("✅ Confirm and Start Simulation")
+            edit_button = st.button("✏️ Edit Details")
+
+            if confirm_button:
+                # Proceed to simulation
+                st.success("Simulation Started!")
+                # Call the financial projection and simulation functions here
+            if edit_button:
+                # Return to inputs tab
+                st.experimental_rerun()
+    
     # --- Projection Calculation ---
     import pandas as pd
     import numpy as np
     import altair as alt
 
+    # Projection Code as provided...
+
+    # Cash Flow Table
+    cash_flow_data = {
+        "Age": age_projection,
+        "Income": income,
+        "Expenses": costs,
+        "Net Worth": net_worth
+    }
+    cash_flow_df = pd.DataFrame(cash_flow_data)
+    st.subheader(lang["cash_flow_table_title"])
+    st.dataframe(cash_flow_df)
+
+    # Additional Charts and Projections
+    # Liquid and Illiquid Asset Evolution
+    liquid_assets = grow(initial_savings, investment_return)
+    illiquid_assets = [0] * len(years)  # Modify as per actual assets like home, 2nd pillar, etc.
+    
+    assets_df = pd.DataFrame({
+        "Year": age_projection,
+        "Liquid Assets": liquid_assets,
+        "Illiquid Assets": illiquid_assets
+    })
+
+    liquid_illiquid_chart = alt.Chart(assets_df).mark_line().encode(
+        x="Year",
+        y=alt.Y("Liquid Assets", title="CHF"),
+        color=alt.value("green"),
+        tooltip=["Year", "Liquid Assets"]
+    ) + alt.Chart(assets_df).mark_line().encode(
+        x="Year",
+        y=alt.Y("Illiquid Assets", title="CHF"),
+        color=alt.value("blue"),
+        tooltip=["Year", "Illiquid Assets"]
+    )
+
+    st.altair_chart(liquid_illiquid_chart, use_container_width=True)
+
+    # Fixed vs Variable Expenses Chart
+    expenses_df = pd.DataFrame({
+        "Year": age_projection,
+        "Fixed Expenses": [total_expenses for _ in years],
+        "Variable Expenses": [cost - total_expenses for cost in costs]
+    })
+
+    fixed_variable_chart = alt.Chart(expenses_df).mark_line().encode(
+        x="Year",
+        y=alt.Y("Fixed Expenses", title="CHF"),
+        color=alt.value("red"),
+        tooltip=["Year", "Fixed Expenses"]
+    ) + alt.Chart(expenses_df).mark_line().encode(
+        x="Year",
+        y=alt.Y("Variable Expenses", title="CHF"),
+        color=alt.value("orange"),
+        tooltip=["Year", "Variable Expenses"]
+    )
+
+    st.altair_chart(fixed_variable_chart, use_container_width=True)
+
+    # Donut Chart for Expense Breakdown
+    expense_categories = ["Rent", "Food", "Transport", "Entertainment", "Healthcare", "Misc"]
+    expenses_values = [rent, food, transport, entertainment, healthcare, misc]
+
+    donut_data = pd.DataFrame({
+        'category': expense_categories,
+        'amount': expenses_values
+    })
+
+    donut_chart = alt.Chart(donut_data).mark_arc().encode(
+        theta=alt.Theta(field="amount", type="quantitative"),
+        color=alt.Color(field="category", type="nominal"),
+        tooltip=["category", "amount"]
+    )
+
+    st.altair_chart(donut_chart, use_container_width=True)
+
+    
     inflation_rate = 1.6
     salary_growth_rate = 2.2
     investment_return = 4.8
@@ -236,7 +335,7 @@ with tabs[2]:
 
     df["Net Worth (Base Case)"] = net_worth
 
-    simulations = 50
+    simulations = 100
     mc_df = pd.DataFrame({"Year": age_projection})
     np.random.seed(42)
     for i in range(simulations):
@@ -300,6 +399,37 @@ with tabs[2]:
     3. Maintain a healthy gap between lifestyle cost and income growth.
     4. 🪙 Your **Future Stability Score**: `{score}/10`
     """)
+
+    # Retirement Projection with FIRE goal
+    # Add logic for FIRE goal simulation...
+
+    # Multiple Simulations (Optimistic, Pessimistic)
+    optimistic_df = mc_df * 1.1  # Optimistic scenario
+    pessimistic_df = mc_df * 0.9  # Pessimistic scenario
+
+    st.subheader("Multiple Scenarios Simulation")
+    optimistic_chart = alt.Chart(optimistic_df.melt("Year")).mark_line().encode(
+        x="Year",
+        y="value:Q",
+        color=alt.value("green"),
+        tooltip=["Year", "value"]
+    )
+
+    pessimistic_chart = alt.Chart(pessimistic_df.melt("Year")).mark_line().encode(
+        x="Year",
+        y="value:Q",
+        color=alt.value("red"),
+        tooltip=["Year", "value"]
+    )
+
+    st.altair_chart(optimistic_chart + pessimistic_chart, use_container_width=True)
+
+    # AI Advisor Mode (suggestions based on simulation)
+    st.subheader("AI Advisor Mode")
+    if net_worth[-1] < 0:
+        st.warning("Your net worth is negative in some years. Consider revising your expenses or increasing your savings.")
+    else:
+        st.success("You're on track for a healthy financial future!")
 
 # -------- Helth -----
 with tabs[3]:
