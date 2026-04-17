@@ -18,6 +18,9 @@ class Translator:
             self.translations = {}
 
     def gettext(self, key, default=None, **kwargs):
+        if key not in self.translations:
+            print(f"[WARN] La traduccio no esta a la llista per la clau: '{key}'")
+   
         value = self.translations.get(key, default or key)
         if kwargs:
             try:

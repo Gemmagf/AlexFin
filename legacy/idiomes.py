@@ -13,6 +13,7 @@ translations = {
     "tax":"📌 Tax Basics in Switzerland",
     "book_call": "📅 Book a free call",
     "planner_title": "🌱 Your Future Planner",
+    "confirm_button": "✅ Confirm",
     "personal_info": "👤 Personal Information & Lifestyle",
     "living_expenses": "🏠 Living Expenses",
     "life_goals": "🧭 Life Goals & Plans",
