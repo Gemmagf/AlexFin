@@ -284,6 +284,36 @@ body { background: #f0f2f7; margin: 0; }
 #sidebar::-webkit-scrollbar-track { background: transparent; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
+/* ── Content area dcc.Dropdown (Dash 4.x) ──────── */
+#page-content .Select-control {
+  border: 1px solid #dde0e8 !important;
+  border-radius: 8px !important;
+  min-height: 36px !important;
+  background: white !important;
+  transition: border-color 0.2s;
+}
+#page-content .Select-control:hover { border-color: #c0392b !important; }
+#page-content .is-focused .Select-control { border-color: #c0392b !important; box-shadow: 0 0 0 2px rgba(192,57,43,0.15) !important; }
+#page-content .Select-placeholder,
+#page-content .Select-value-label { color: #444 !important; font-size: 0.87rem !important; }
+#page-content .Select-menu-outer {
+  border: 1px solid #dde0e8 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+  z-index: 9999;
+}
+#page-content .Select-option { font-size: 0.87rem !important; }
+#page-content .Select-option.is-focused { background: rgba(192,57,43,0.07) !important; color: #c0392b !important; }
+#page-content .Select-option.is-selected { background: rgba(192,57,43,0.12) !important; color: #c0392b !important; font-weight: 600; }
+
+/* ── dbc.Input sizing ───────────────────────────── */
+.form-control-sm { font-size: 0.87rem !important; }
+
+/* ── dbc.Accordion ──────────────────────────────── */
+.accordion-button { font-size: 0.88rem !important; font-weight: 600 !important; }
+.accordion-button:not(.collapsed) { color: #c0392b !important; background: rgba(192,57,43,0.05) !important; box-shadow: none !important; }
+.accordion-button:focus { box-shadow: none !important; }
+
 /* ── Backward-compat aliases ───────────────────── */
 .kpi-box        { background: white; border-radius: 14px; padding: 18px 20px;
                   box-shadow: 0 2px 14px rgba(0,0,0,0.06); border: 1px solid #eaecf2; height: 100%; text-align: center; }

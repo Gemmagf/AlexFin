@@ -166,30 +166,37 @@ def spot_card(sp):
 def layout():
     return html.Div([
         html.Div(id="prosp-header"),
-        dbc.Tabs(
-            [
-                dbc.Tab(label="📅 Events & Networking", tab_id="tab-events"),
-                dbc.Tab(label="🏛️ Luoghi & Associazioni", tab_id="tab-spots"),
-                dbc.Tab(label="📧 Email Marketing", tab_id="tab-email"),
-                dbc.Tab(label="📊 Storico Invii", tab_id="tab-log"),
-            ],
-            id="prosp-tabs",
-            active_tab="tab-events",
-        ),
+        html.Div(id="prosp-tabs-container"),
         html.Div(id="prosp-tab-content", style={"marginTop": "16px"}),
         dcc.Store(id="prosp-email-status", data=""),
+        dcc.Store(id="prosp-active-tab", data="tab-events"),
     ])
 
 
-@callback(Output("prosp-header", "children"), Input("app-store", "data"))
+@callback(
+    Output("prosp-header", "children"),
+    Output("prosp-tabs-container", "children"),
+    Input("app-store", "data"),
+)
 def render_header(store):
     store = store or {}
     lc = store.get("lc", "it")
-    return html.Div([
-        html.H1("🔭 Prospecting & Networking", className="page-title"),
-        html.P("Trova nuovi clienti, partecipa agli eventi giusti e invia comunicazioni professionali.", className="page-caption"),
+    header = html.Div([
+        html.H1(t("prosp_title", lc), className="page-title"),
+        html.P(t("prosp_subtitle", lc), className="page-caption"),
         html.Hr(),
     ])
+    tabs = dbc.Tabs(
+        [
+            dbc.Tab(label=t("prosp_tab_events", lc), tab_id="tab-events"),
+            dbc.Tab(label=t("prosp_tab_spots", lc), tab_id="tab-spots"),
+            dbc.Tab(label=t("prosp_tab_email", lc), tab_id="tab-email"),
+            dbc.Tab(label=t("prosp_tab_log", lc), tab_id="tab-log"),
+        ],
+        id="prosp-tabs",
+        active_tab="tab-events",
+    )
+    return header, tabs
 
 
 @callback(
@@ -199,14 +206,15 @@ def render_header(store):
 )
 def render_tab(active_tab, store):
     store = store or {}
+    lc = store.get("lc", "it")
     if active_tab == "tab-events":
-        return render_events()
+        return render_events(lc)
     elif active_tab == "tab-spots":
         return render_spots()
     elif active_tab == "tab-email":
-        return render_email(store)
+        return render_email(store, lc)
     elif active_tab == "tab-log":
-        return render_log()
+        return render_log(lc)
     return html.Div()
 
 
@@ -214,35 +222,35 @@ def render_tab(active_tab, store):
 # TAB 1 — EVENTS
 # ─────────────────────────────────────────────
 
-def render_events():
+def render_events(lc="it"):
     return html.Div([
         # Filters
         html.Div(
             [
                 dbc.Row([
                     dbc.Col([
-                        html.Label("🏙️ Città", style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
+                        html.Label(t("prosp_filter_city", lc), style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
                         dcc.Dropdown(
                             id="ev-city-filter",
-                            options=[{"label": "Tutte le città", "value": "all"}] + [{"label": c, "value": c} for c in CITIES],
+                            options=[{"label": t("prosp_all_cities", lc), "value": "all"}] + [{"label": c, "value": c} for c in CITIES],
                             value="all", clearable=False,
                             style={"fontSize": "0.87rem"},
                         ),
                     ], md=4),
                     dbc.Col([
-                        html.Label("📌 Tipo", style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
+                        html.Label(t("prosp_filter_type", lc), style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
                         dcc.Dropdown(
                             id="ev-type-filter",
-                            options=[{"label": "Tutti i tipi", "value": "all"}] + [{"label": t, "value": t} for t in EVENT_TYPES],
+                            options=[{"label": t("prosp_all_types", lc), "value": "all"}] + [{"label": ev_t, "value": ev_t} for ev_t in EVENT_TYPES],
                             value="all", clearable=False,
                             style={"fontSize": "0.87rem"},
                         ),
                     ], md=4),
                     dbc.Col([
-                        html.Label("🔁 Frequenza", style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
+                        html.Label(t("prosp_filter_freq", lc), style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
                         dcc.Dropdown(
                             id="ev-freq-filter",
-                            options=[{"label": "Tutte", "value": "all"},
+                            options=[{"label": t("prosp_all_freq", lc), "value": "all"},
                                      {"label": "Settimanale", "value": "Settimanale"},
                                      {"label": "Mensile", "value": "Mensile"},
                                      {"label": "Annuale", "value": "Annuale"}],
@@ -255,6 +263,7 @@ def render_events():
             style={"background": "white", "borderRadius": "14px", "padding": "16px 20px",
                    "marginBottom": "16px", "boxShadow": "0 2px 12px rgba(0,0,0,0.05)", "border": "1px solid #eaecf2"},
         ),
+        dcc.Store(id="prosp-lc-store", data=lc),
         html.Div(id="ev-list"),
     ])
 
@@ -264,8 +273,10 @@ def render_events():
     Input("ev-city-filter", "value"),
     Input("ev-type-filter", "value"),
     Input("ev-freq-filter", "value"),
+    Input("prosp-lc-store", "data"),
 )
-def filter_events(city, ev_type, freq):
+def filter_events(city, ev_type, freq, lc):
+    lc = lc or "it"
     filtered = EVENTS
     if city and city != "all":
         filtered = [e for e in filtered if e["city"] == city]
@@ -275,7 +286,7 @@ def filter_events(city, ev_type, freq):
         filtered = [e for e in filtered if e["frequency"] == freq]
 
     if not filtered:
-        return html.Div("Nessun evento trovato con i filtri selezionati.",
+        return html.Div(t("prosp_no_events", lc),
                         style={"color": "#888", "textAlign": "center", "padding": "40px"})
 
     # Group by city
@@ -301,7 +312,7 @@ def filter_events(city, ev_type, freq):
             ], style={"marginBottom": "28px"})
         )
     return html.Div([
-        html.Div(f"{len(filtered)} eventi trovati",
+        html.Div(t("prosp_events_found", lc, n=len(filtered)),
                  style={"color": "#888", "fontSize": "0.82rem", "marginBottom": "16px"}),
         *sections,
     ])
@@ -352,7 +363,7 @@ def filter_spots(cat):
 # TAB 3 — EMAIL MARKETING
 # ─────────────────────────────────────────────
 
-def render_email(store):
+def render_email(store, lc="it"):
     nome_adv = store.get("nome", "Alex Bevilacqua") or "Alex Bevilacqua"
     canton = store.get("canton", "Ticino")
 
@@ -363,10 +374,10 @@ def render_email(store):
             # Left — compose
             dbc.Col([
                 html.Div([
-                    html.Div("📧 Componi Email", className="section-title"),
+                    html.Div(t("prosp_compose", lc), className="section-title"),
 
                     # Template selector
-                    html.Label("Template", style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
+                    html.Label(t("prosp_template", lc), style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
                     dcc.Dropdown(id="em-template", options=template_opts,
                                  value="fredda_presentazione", clearable=False,
                                  style={"fontSize": "0.87rem", "marginBottom": "14px"}),
@@ -374,21 +385,21 @@ def render_email(store):
                     # Personalization
                     dbc.Row([
                         dbc.Col([
-                            html.Label("Nome destinatario", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                            html.Label(t("prosp_dest_nome", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                             dbc.Input(id="em-dest-nome", placeholder="Marco Rossi", size="sm"),
                         ], md=6),
                         dbc.Col([
-                            html.Label("Email destinatario", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                            html.Label(t("prosp_dest_email", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                             dbc.Input(id="em-dest-email", placeholder="marco@example.ch", type="email", size="sm"),
                         ], md=6),
                     ], className="g-2 mb-2"),
                     dbc.Row([
                         dbc.Col([
-                            html.Label("Dove l'ha conosciuto/a", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                            html.Label(t("prosp_dove", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                             dbc.Input(id="em-dove", placeholder="BNI Zurigo / LinkedIn / ...", size="sm"),
                         ], md=6),
                         dbc.Col([
-                            html.Label("Telefono mittente", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                            html.Label(t("prosp_tel", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                             dbc.Input(id="em-tel", placeholder="+41 91 000 0000", size="sm"),
                         ], md=6),
                     ], className="g-2 mb-3"),
@@ -408,11 +419,11 @@ def render_email(store):
                                 dbc.Col([html.Label("Password / App Password", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                                          dbc.Input(id="em-smtp-pass", type="password", size="sm")], md=6),
                             ], className="g-2"),
-                        ], title="⚙️ Configurazione SMTP"),
+                        ], title=t("prosp_smtp_config", lc)),
                     ], start_collapsed=True, style={"marginBottom": "14px"}),
 
-                    dbc.Button("📤 Invia Email", id="em-send-btn", color="danger", size="sm", className="me-2"),
-                    dbc.Button("👁️ Anteprima", id="em-preview-btn", color="secondary", size="sm", outline=True),
+                    dbc.Button(t("prosp_send", lc), id="em-send-btn", color="danger", size="sm", className="me-2"),
+                    dbc.Button(t("prosp_preview", lc), id="em-preview-btn", color="secondary", size="sm", outline=True),
                     html.Div(id="em-status", style={"marginTop": "10px"}),
                 ], className="content-card"),
             ], md=5),
@@ -420,7 +431,7 @@ def render_email(store):
             # Right — preview
             dbc.Col([
                 html.Div([
-                    html.Div("👁️ Anteprima", className="section-title"),
+                    html.Div(t("prosp_preview_title", lc), className="section-title"),
                     html.Div(id="em-preview-area"),
                 ], className="content-card", style={"minHeight": "400px"}),
             ], md=7),
@@ -491,7 +502,7 @@ def preview_email(n, template_key, dest_nome, dove, tel, smtp_user, store):
                    "fontFamily": "inherit", "marginBottom": "16px"},
         ),
         html.Hr(),
-        html.Div("📊 Mini-Report allegato:", style={"fontWeight": "700", "fontSize": "0.85rem", "color": "#555", "marginBottom": "8px"}),
+        html.Div(t("prosp_report", store.get("lc", "it") if store else "it"), style={"fontWeight": "700", "fontSize": "0.85rem", "color": "#555", "marginBottom": "8px"}),
         html.Div(
             [dcc.Markdown(
                 report_html,
@@ -522,12 +533,13 @@ def preview_email(n, template_key, dest_nome, dove, tel, smtp_user, store):
 def send_email(n_clicks, template_key, dest_nome, dest_email, dove, tel, smtp_srv, smtp_port, smtp_user, smtp_pass, store):
     if not n_clicks:
         return ""
-    if not dest_email:
-        return html.Div("⚠️ Inserisci l'email del destinatario.", className="budget-warn")
-    if not smtp_user or not smtp_pass:
-        return html.Div("⚠️ Configura le credenziali SMTP per inviare.", className="budget-warn")
-
     store = store or {}
+    lc = store.get("lc", "it")
+    if not dest_email:
+        return html.Div(t("prosp_no_email", lc), className="budget-warn")
+    if not smtp_user or not smtp_pass:
+        return html.Div(t("prosp_no_smtp", lc), className="budget-warn")
+
     canton = store.get("canton", "Ticino")
     nome_adv = store.get("nome", "Alex Bevilacqua") or "Alex Bevilacqua"
     mittente = nome_adv
@@ -601,22 +613,22 @@ I dati riportati sono indicativi e non costituiscono consulenza legale o fiscale
         })
         save_sent(log)
 
-        return html.Div(f"✅ Email inviata con successo a {dest_nome or dest_email} ({dest_email})", className="budget-ok")
+        return html.Div(f"{t('prosp_sent_ok', lc)} {dest_nome or dest_email} ({dest_email})", className="budget-ok")
     except Exception as e:
-        return html.Div(f"❌ Errore invio: {str(e)}", className="budget-err")
+        return html.Div(f"{t('prosp_sent_err', lc)} {str(e)}", className="budget-err")
 
 
 # ─────────────────────────────────────────────
 # TAB 4 — LOG INVII
 # ─────────────────────────────────────────────
 
-def render_log():
+def render_log(lc="it"):
     log = load_sent()
     if not log:
         return html.Div(
             [
                 html.Div("📭", style={"fontSize": "3rem", "textAlign": "center", "marginBottom": "12px"}),
-                html.Div("Nessuna email inviata ancora.",
+                html.Div(t("prosp_log_empty", lc),
                          style={"textAlign": "center", "color": "#888", "fontSize": "0.95rem"}),
             ],
             style={"padding": "60px 20px"}
@@ -642,7 +654,7 @@ def render_log():
         html.Div(
             [
                 html.Div(str(len(log)), style={"fontSize": "2.5rem", "fontWeight": "800", "color": "#c0392b"}),
-                html.Div("Email inviate totali", style={"fontSize": "0.82rem", "color": "#888", "fontWeight": "600"}),
+                html.Div(t("prosp_log_total", lc), style={"fontSize": "0.82rem", "color": "#888", "fontWeight": "600"}),
             ],
             style={"background": "white", "borderRadius": "14px", "padding": "20px", "textAlign": "center",
                    "boxShadow": "0 2px 14px rgba(0,0,0,0.06)", "border": "1px solid #eaecf2",
@@ -652,11 +664,11 @@ def render_log():
             dbc.Table(
                 [
                     html.Thead(html.Tr([
-                        html.Th("Data", style={"fontSize": "0.78rem"}),
-                        html.Th("Destinatario", style={"fontSize": "0.78rem"}),
-                        html.Th("Email", style={"fontSize": "0.78rem"}),
-                        html.Th("Template", style={"fontSize": "0.78rem"}),
-                        html.Th("Cantone", style={"fontSize": "0.78rem"}),
+                        html.Th(t("prosp_log_col_data", lc), style={"fontSize": "0.78rem"}),
+                        html.Th(t("prosp_log_col_dest", lc), style={"fontSize": "0.78rem"}),
+                        html.Th(t("prosp_log_col_email", lc), style={"fontSize": "0.78rem"}),
+                        html.Th(t("prosp_log_col_template", lc), style={"fontSize": "0.78rem"}),
+                        html.Th(t("prosp_log_col_canton", lc), style={"fontSize": "0.78rem"}),
                     ])),
                     html.Tbody(rows),
                 ],
