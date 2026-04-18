@@ -5,6 +5,7 @@ from dash import html, dcc, callback, Input, Output
 import dash_bootstrap_components as dbc
 
 from i18n import t
+from prospect_data import EVENTS, NETWORKING_SPOTS, EMAIL_TEMPLATES
 
 dash.register_page(__name__, path="/", name="Home")
 
@@ -39,59 +40,36 @@ def render_home(store):
             )
         ]
 
+    def mod_card(icon, title, desc, href):
+        return dbc.Col(
+            html.A(
+                html.Div([
+                    html.Span(icon, className="mod-icon"),
+                    html.Div(title, className="mod-title"),
+                    html.Div(desc, className="mod-desc"),
+                    html.Div(
+                        "→ Apri",
+                        style={"marginTop": "18px", "color": "#c0392b", "fontWeight": "700", "fontSize": "0.9rem"},
+                    ),
+                ], className="mod-card"),
+                href=href, className="mod-card-wrap",
+            ), md=3,
+        )
+
     cards = dbc.Row(
         [
-            dbc.Col(
-                html.A(
-                    html.Div([
-                        html.Span("🧑‍💼", className="mod-icon"),
-                        html.Div("Advisor Dashboard", className="mod-title"),
-                        html.Div(
-                            "Analisi profilo, raccomandazioni prioritarie, simulatore patrimoniale, note e CRM clienti.",
-                            className="mod-desc",
-                        ),
-                        html.Div(
-                            "→ Apri",
-                            style={"marginTop": "18px", "color": "#c0392b", "fontWeight": "700", "fontSize": "0.9rem"},
-                        ),
-                    ], className="mod-card"),
-                    href="/advisor", className="mod-card-wrap",
-                ), md=4,
-            ),
-            dbc.Col(
-                html.A(
-                    html.Div([
-                        html.Span("🛡️", className="mod-icon"),
-                        html.Div("Assicurazioni & Pilastri", className="mod-title"),
-                        html.Div(
-                            "Prodotti SVAG, comparatore Krankenkasse con franchigie/modelli, 1°/2°/3° pilastro.",
-                            className="mod-desc",
-                        ),
-                        html.Div(
-                            "→ Apri",
-                            style={"marginTop": "18px", "color": "#c0392b", "fontWeight": "700", "fontSize": "0.9rem"},
-                        ),
-                    ], className="mod-card"),
-                    href="/assegurances", className="mod-card-wrap",
-                ), md=4,
-            ),
-            dbc.Col(
-                html.A(
-                    html.Div([
-                        html.Span("🏡", className="mod-icon"),
-                        html.Div("Vita & Budget", className="mod-title"),
-                        html.Div(
-                            "Budget mensile, pianificazione per fase di vita, obiettivi finanziari con timeline.",
-                            className="mod-desc",
-                        ),
-                        html.Div(
-                            "→ Apri",
-                            style={"marginTop": "18px", "color": "#c0392b", "fontWeight": "700", "fontSize": "0.9rem"},
-                        ),
-                    ], className="mod-card"),
-                    href="/vida-budget", className="mod-card-wrap",
-                ), md=4,
-            ),
+            mod_card("🧑‍💼", "Advisor Dashboard",
+                     "Analisi profilo, raccomandazioni prioritarie, simulatore patrimoniale, note e CRM clienti.",
+                     "/advisor"),
+            mod_card("🛡️", "Assicurazioni & Pilastri",
+                     "Prodotti SVAG, comparatore Krankenkasse con franchigie/modelli, 1°/2°/3° pilastro.",
+                     "/assegurances"),
+            mod_card("🏡", "Vita & Budget",
+                     "Budget mensile, pianificazione per fase di vita, obiettivi finanziari con timeline.",
+                     "/vida-budget"),
+            mod_card("🔭", "Prospecting",
+                     f"{len(EVENTS)} eventi networking · {len(NETWORKING_SPOTS)} associazioni · {len(EMAIL_TEMPLATES)} template email.",
+                     "/prospecting"),
         ],
         className="g-4",
     )
@@ -103,8 +81,8 @@ def render_home(store):
             html.Div("Lingue supportate", style={"fontSize": "0.78rem", "color": "#888", "fontWeight": "600"}),
         ], className="metric-card", style={"textAlign": "center", "padding": "20px"}), md=3),
         dbc.Col(html.Div([
-            html.Div("6", style={"fontSize": "2rem", "fontWeight": "800", "color": "#c0392b"}),
-            html.Div("Prodotti assicurativi", style={"fontSize": "0.78rem", "color": "#888", "fontWeight": "600"}),
+            html.Div(str(len(EVENTS)), style={"fontSize": "2rem", "fontWeight": "800", "color": "#c0392b"}),
+            html.Div("Eventi networking", style={"fontSize": "0.78rem", "color": "#888", "fontWeight": "600"}),
         ], className="metric-card", style={"textAlign": "center", "padding": "20px"}), md=3),
         dbc.Col(html.Div([
             html.Div("3", style={"fontSize": "2rem", "fontWeight": "800", "color": "#c0392b"}),
@@ -132,7 +110,7 @@ def render_home(store):
         html.Hr(style={"borderColor": "#eaecf2", "marginBottom": "28px"}),
         stats,
         html.Div(
-            html.H2("Moduli", style={"fontSize": "1rem", "fontWeight": "700", "color": "#1e2235", "marginBottom": "20px"}),
+            html.H2("Moduli", style={"fontSize": "1rem", "fontWeight": "700", "color": "#1e2235", "marginBottom": "20px", "letterSpacing": "-0.2px"}),
         ),
         cards,
         html.Hr(style={"marginTop": "40px", "borderColor": "#eaecf2"}),
