@@ -89,13 +89,7 @@ def _section_title(pdf, title):
 
 # ── Main generator ────────────────────────────────────────────────────────────
 
-def genera_pdf(
-    store,
-    note_libere: str = "",
-    prossimi_passi: str = "",
-    temi_discussi: list = None,
-    urgenza_label: str = "Media",
-) -> bytes:
+def genera_pdf(store) -> bytes:
     """Generate the meeting-report PDF and return raw bytes."""
 
     store = store or {}
@@ -109,7 +103,6 @@ def genera_pdf(
     n_figli      = int(store.get("n_figli", 0))
     ipoteca      = store.get("ipoteca", False)
     rischio      = store.get("tolleranza_rischio", "Media")
-    temi_discussi = temi_discussi or []
 
     reddito_annuo = reddito_mens * 12
     avs     = min(reddito_annuo * 0.18, 2520 * 12)
@@ -271,54 +264,6 @@ def genera_pdf(
         pdf.set_text_color(*GRAY)
         pdf.multi_cell(177, 4.5, _s(r.get("motivo", "")))
         pdf.ln(1.5)
-
-    # ── NOTE DEL COLLOQUIO ────────────────────────────────────────────────────
-    if temi_discussi or prossimi_passi or note_libere:
-        pdf.ln(3)
-        _section_title(pdf, "NOTE DEL COLLOQUIO")
-
-        if temi_discussi:
-            pdf.set_font("Helvetica", "B", 8.5)
-            pdf.set_text_color(*DARK)
-            pdf.set_x(14)
-            pdf.cell(0, 5, "Temi discussi:", ln=True)
-            pdf.set_font("Helvetica", "", 8)
-            pdf.set_text_color(*GRAY)
-            for tema in temi_discussi:
-                pdf.set_x(19)
-                pdf.cell(0, 4.5, _s(f"- {tema}"), ln=True)
-            pdf.ln(2)
-
-        if prossimi_passi:
-            pdf.set_font("Helvetica", "B", 8.5)
-            pdf.set_text_color(*DARK)
-            pdf.set_x(14)
-            pdf.cell(0, 5, "Prossimi passi:", ln=True)
-            pdf.set_font("Helvetica", "", 8)
-            pdf.set_text_color(*GRAY)
-            pdf.set_x(19)
-            pdf.multi_cell(177, 4.5, _s(prossimi_passi))
-            pdf.ln(2)
-
-        if note_libere:
-            pdf.set_font("Helvetica", "B", 8.5)
-            pdf.set_text_color(*DARK)
-            pdf.set_x(14)
-            pdf.cell(0, 5, "Note libere:", ln=True)
-            pdf.set_font("Helvetica", "", 8)
-            pdf.set_text_color(*GRAY)
-            pdf.set_x(19)
-            pdf.multi_cell(177, 4.5, _s(note_libere))
-            pdf.ln(2)
-
-        # urgency
-        pdf.set_font("Helvetica", "B", 8.5)
-        pdf.set_text_color(*DARK)
-        pdf.set_x(14)
-        pdf.cell(35, 5, "Urgenza riunione:")
-        pdf.set_font("Helvetica", "", 8.5)
-        pdf.set_text_color(*GRAY)
-        pdf.cell(0, 5, _s(urgenza_label), ln=True)
 
     # ── DISCLAIMER ────────────────────────────────────────────────────────────
     pdf.ln(8)

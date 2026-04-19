@@ -505,35 +505,14 @@ AlexFin · SVAG · {oggi}
     Output("pdf-download", "data"),
     Output("pdf-feedback", "children"),
     Input("pdf-btn", "n_clicks"),
-    State("note-libere", "value"),
-    State("note-passi", "value"),
-    State("note-urgenza", "value"),
     State("note-store-data", "data"),
-    State("note-lc-store", "data"),
-    *[State(f"tema-{i}", "value") for i in range(len(TEMI_LISTA))],
     prevent_initial_call=True,
 )
-def download_pdf(n_clicks, note_libere, prossimi, urgenza_idx, store, lc, *temi_vals):
+def download_pdf(n_clicks, store):
     store = store or {}
-    lc    = lc or "it"
     nome  = store.get("nome") or "Cliente"
-
-    temi_discussi = []
-    for vals in temi_vals:
-        if vals:
-            temi_discussi.extend(vals)
-
-    urgenza_opts  = t("note_urgenza_opt", lc)
-    urgenza_label = urgenza_opts[urgenza_idx or 1]
-
     try:
-        pdf_bytes = genera_pdf(
-            store=store,
-            note_libere=note_libere or "",
-            prossimi_passi=prossimi or "",
-            temi_discussi=temi_discussi,
-            urgenza_label=urgenza_label,
-        )
+        pdf_bytes = genera_pdf(store=store)
         oggi = date.today().strftime("%Y%m%d")
         filename = f"AlexFin_{nome.replace(' ', '_')}_{oggi}.pdf"
         feedback = html.Div(f"✅ PDF generato: {filename}", style={"color": "#27ae60", "fontSize": "12px"})
