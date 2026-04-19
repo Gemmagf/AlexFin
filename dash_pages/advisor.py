@@ -17,6 +17,7 @@ import dash_bootstrap_components as dbc
 
 from i18n import t
 from products import calcola_raccomandazioni
+from sources import sources_footer
 
 dash.register_page(__name__, path="/advisor", name="Advisor")
 
@@ -84,17 +85,7 @@ def rec_card(r):
 def layout():
     return html.Div([
         html.Div(id="adv-header"),
-        dbc.Tabs(
-            [
-                dbc.Tab(label="🎯 Raccomandazioni", tab_id="tab-rac"),
-                dbc.Tab(label="📈 Simulatore", tab_id="tab-sim"),
-                dbc.Tab(label="📝 Note", tab_id="tab-note"),
-                dbc.Tab(label="📋 CRM", tab_id="tab-crm"),
-            ],
-            id="adv-tabs",
-            active_tab="tab-rac",
-            style={"marginBottom": "20px"},
-        ),
+        html.Div(id="adv-tabs-container"),
         html.Div(id="adv-tab-content"),
 
         # Note state stores (to avoid circular deps)
@@ -109,7 +100,11 @@ def layout():
 # HEADER CALLBACK
 # ─────────────────────────────────────────────
 
-@callback(Output("adv-header", "children"), Input("app-store", "data"))
+@callback(
+    Output("adv-header", "children"),
+    Output("adv-tabs-container", "children"),
+    Input("app-store", "data")
+)
 def render_header(store):
     if not store:
         store = {}
@@ -119,11 +114,23 @@ def render_header(store):
     sit = store.get("situazione", "Dipendente")
     canton = store.get("canton", "Ticino")
     reddito = store.get("reddito_mensile", 5500)
-    return html.Div([
+    header = html.Div([
         html.H1(f"🧑‍💼 {t('adv_title', lc)}", className="page-title"),
         html.P(f"{nome} · {eta} anni · {sit} · {canton} · CHF {reddito:,}/m", className="page-subtitle"),
         html.Hr(),
     ])
+    tabs = dbc.Tabs(
+        [
+            dbc.Tab(label=t("tab_rac", lc), tab_id="tab-rac"),
+            dbc.Tab(label=t("tab_sim", lc), tab_id="tab-sim"),
+            dbc.Tab(label=t("tab_note", lc), tab_id="tab-note"),
+            dbc.Tab(label="📋 CRM", tab_id="tab-crm"),
+        ],
+        id="adv-tabs",
+        active_tab="tab-rac",
+        style={"marginBottom": "20px"},
+    )
+    return header, tabs
 
 
 # ─────────────────────────────────────────────
@@ -142,10 +149,11 @@ def render_tab(active_tab, store):
     nome = store.get("nome", "") or "Cliente"
     anni_pensionamento = max(65 - eta, 1)
 
+    footer = sources_footer("advisor")
     if active_tab == "tab-rac":
-        return render_raccomandazioni(store, lc, eta, reddito_mensile, reddito_annuo, situazione, anni_pensionamento)
+        return html.Div([render_raccomandazioni(store, lc, eta, reddito_mensile, reddito_annuo, situazione, anni_pensionamento), footer])
     elif active_tab == "tab-sim":
-        return render_simulatore(lc, eta, reddito_mensile)
+        return html.Div([render_simulatore(lc, eta, reddito_mensile), footer])
     elif active_tab == "tab-note":
         return render_note(lc, nome, eta, situazione, store)
     elif active_tab == "tab-crm":

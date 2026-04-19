@@ -8,6 +8,7 @@ from dash import callback, dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
 
 from i18n import t
+from sources import sources_footer
 from products import (
     ASSICURAZIONI, KK_COMPLEMENTARI, KK_FRANCHIGIE, KK_MODELLI,
     KK_PREMI_CANTON, PILASTRI,
@@ -19,29 +20,35 @@ dash.register_page(__name__, path="/assegurances", name="Assicurazioni")
 def layout():
     return html.Div([
         html.Div(id="ass-header"),
-        dbc.Tabs(
-            [
-                dbc.Tab(label="🛡️ Assicurazioni", tab_id="tab-ass"),
-                dbc.Tab(label="💊 Krankenkasse", tab_id="tab-kk"),
-                dbc.Tab(label="🏛️ Previdenza", tab_id="tab-prev"),
-            ],
-            id="ass-tabs",
-            active_tab="tab-ass",
-            style={"marginBottom": "20px"},
-        ),
+        html.Div(id="ass-tabs-container"),
         html.Div(id="ass-tab-content"),
     ])
 
 
-@callback(Output("ass-header", "children"), Input("app-store", "data"))
+@callback(
+    Output("ass-header", "children"),
+    Output("ass-tabs-container", "children"),
+    Input("app-store", "data")
+)
 def render_header(store):
     if not store:
         store = {}
     lc = store.get("lc", "it")
-    return html.Div([
+    header = html.Div([
         html.H1(f"🛡️ {t('ass_header', lc)} & {t('kk_header', lc)}", className="page-title"),
         html.Hr(),
     ])
+    tabs = dbc.Tabs(
+        [
+            dbc.Tab(label=t("tab_ass", lc), tab_id="tab-ass"),
+            dbc.Tab(label=t("tab_kk", lc), tab_id="tab-kk"),
+            dbc.Tab(label=t("tab_prev", lc), tab_id="tab-prev"),
+        ],
+        id="ass-tabs",
+        active_tab="tab-ass",
+        style={"marginBottom": "20px"},
+    )
+    return header, tabs
 
 
 @callback(Output("ass-tab-content", "children"), Input("ass-tabs", "active_tab"), Input("app-store", "data"))
@@ -55,12 +62,17 @@ def render_tab(active_tab, store):
     situazione = store.get("situazione", "Dipendente")
 
     if active_tab == "tab-ass":
-        return render_assicurazioni(lc, eta)
+        content = render_assicurazioni(lc, eta)
+        footer = sources_footer("assicurazioni")
     elif active_tab == "tab-kk":
-        return render_krankenkasse(lc, canton, eta)
+        content = render_krankenkasse(lc, canton, eta)
+        footer = sources_footer("krankenkasse")
     elif active_tab == "tab-prev":
-        return render_previdenza(lc, eta, situazione, reddito_mensile)
-    return html.Div()
+        content = render_previdenza(lc, eta, situazione, reddito_mensile)
+        footer = sources_footer("previdenza")
+    else:
+        return html.Div()
+    return html.Div([content, footer])
 
 
 # ─────────────────────────────────────────────

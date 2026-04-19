@@ -12,6 +12,7 @@ from dash import callback, dcc, html, Input, Output, State, ALL, ctx
 import dash_bootstrap_components as dbc
 
 from i18n import t
+from sources import sources_footer
 from prospect_data import EVENTS, NETWORKING_SPOTS, EMAIL_TEMPLATES, CITIES, EVENT_TYPES, SPOT_CATEGORIES
 
 dash.register_page(__name__, path="/prospecting", name="Prospecting")
@@ -207,10 +208,11 @@ def render_header(store):
 def render_tab(active_tab, store):
     store = store or {}
     lc = store.get("lc", "it")
+    footer = sources_footer("prospecting")
     if active_tab == "tab-events":
-        return render_events(lc)
+        return html.Div([render_events(lc), footer])
     elif active_tab == "tab-spots":
-        return render_spots()
+        return html.Div([render_spots(), footer])
     elif active_tab == "tab-email":
         return render_email(store, lc)
     elif active_tab == "tab-log":

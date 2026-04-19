@@ -9,6 +9,7 @@ from dash import callback, dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
 
 from i18n import t
+from sources import sources_footer
 
 dash.register_page(__name__, path="/vida-budget", name="Vita & Budget")
 
@@ -16,29 +17,35 @@ dash.register_page(__name__, path="/vida-budget", name="Vita & Budget")
 def layout():
     return html.Div([
         html.Div(id="vb-header"),
-        dbc.Tabs(
-            [
-                dbc.Tab(label="🏠 Budget", tab_id="tab-budget"),
-                dbc.Tab(label="👨‍👩‍👧 Fasi di vita", tab_id="tab-fasi"),
-                dbc.Tab(label="🎯 Obiettivi", tab_id="tab-obiettivi"),
-            ],
-            id="vb-tabs",
-            active_tab="tab-budget",
-            style={"marginBottom": "20px"},
-        ),
+        html.Div(id="vb-tabs-container"),
         html.Div(id="vb-tab-content"),
     ])
 
 
-@callback(Output("vb-header", "children"), Input("app-store", "data"))
+@callback(
+    Output("vb-header", "children"),
+    Output("vb-tabs-container", "children"),
+    Input("app-store", "data")
+)
 def render_header(store):
     if not store:
         store = {}
     lc = store.get("lc", "it")
-    return html.Div([
+    header = html.Div([
         html.H1(f"🏡 {t('vita_header', lc)}", className="page-title"),
         html.Hr(),
     ])
+    tabs = dbc.Tabs(
+        [
+            dbc.Tab(label=t("vita_tab1", lc), tab_id="tab-budget"),
+            dbc.Tab(label=t("vita_tab2", lc), tab_id="tab-fasi"),
+            dbc.Tab(label=t("vita_tab3", lc), tab_id="tab-obiettivi"),
+        ],
+        id="vb-tabs",
+        active_tab="tab-budget",
+        style={"marginBottom": "20px"},
+    )
+    return header, tabs
 
 
 @callback(Output("vb-tab-content", "children"), Input("vb-tabs", "active_tab"), Input("app-store", "data"))
@@ -51,55 +58,63 @@ def render_tab(active_tab, store):
     eta = store.get("eta", 38)
 
     if active_tab == "tab-budget":
-        return render_budget(lc, reddito_mensile, figli)
+        content = render_budget(lc, reddito_mensile, figli)
     elif active_tab == "tab-fasi":
-        return render_fasi(lc, eta, figli, reddito_mensile)
+        content = render_fasi(lc, eta, figli, reddito_mensile)
     elif active_tab == "tab-obiettivi":
-        return render_obiettivi(lc, reddito_mensile)
-    return html.Div()
+        content = render_obiettivi(lc, reddito_mensile)
+    else:
+        return html.Div()
+    return html.Div([content, sources_footer("budget")])
 
 
 # ─────────────────────────────────────────────
 # TAB 1 — BUDGET MENSILE
 # ─────────────────────────────────────────────
 
+def _budget_row(label, input_id, value, mn, mx, step):
+    """Compact label + number input row for the budget form."""
+    return [
+        html.Label(label, style={
+            "fontSize": "0.72rem", "fontWeight": "600", "color": "#555",
+            "marginBottom": "2px", "marginTop": "6px", "display": "block",
+            "overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap",
+        }),
+        dcc.Input(id=input_id, type="number", value=value, min=mn, max=mx, step=step,
+                  className="form-control form-control-sm",
+                  style={"marginBottom": "2px", "fontSize": "0.82rem", "padding": "4px 8px"}),
+    ]
+
+
 def render_budget(lc, reddito_mensile, figli):
     return html.Div([
         html.H4(t("vita_tab1", lc), style={"marginBottom": "16px"}),
         dbc.Row([
             dbc.Col([
-                html.H6(f"💰 {t('vita_entrate', lc)}"),
-                html.Label(t("vita_salario1", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-sal1", type="number", value=reddito_mensile, min=0, max=50000, step=100, className="form-control", style={"marginBottom": "8px"}),
-                html.Label(t("vita_salario2", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-sal2", type="number", value=0, min=0, max=30000, step=100, className="form-control", style={"marginBottom": "8px"}),
-                html.Label("Altri entrate (CHF)", style={"fontSize": "12px"}),
-                dcc.Input(id="vb-altri", type="number", value=0, min=0, max=10000, step=50, className="form-control"),
-            ], width=4),
+                html.H6(f"💰 {t('vita_entrate', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
+                *_budget_row(t("vita_salario1", lc), "vb-sal1", reddito_mensile, 0, 50000, 100),
+                *_budget_row(t("vita_salario2", lc), "vb-sal2", 0, 0, 30000, 100),
+                *_budget_row(t("vita_altri_entrate", lc), "vb-altri", 0, 0, 10000, 50),
+            ], md=4),
             dbc.Col([
-                html.H6(f"📤 {t('vita_uscite', lc)}"),
-                html.Label(t("vita_affitto", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-aff", type="number", value=1600, min=0, max=10000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_cibo", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-cibo", type="number", value=700, min=0, max=5000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_trasporto", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-tras", type="number", value=300, min=0, max=3000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_salute", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-sal", type="number", value=500, min=0, max=5000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_intrattenimento", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-int", type="number", value=300, min=0, max=3000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_asilo", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-asilo", type="number", value=800 if figli else 0, min=0, max=5000, step=50, className="form-control", style={"marginBottom": "6px"}),
-                html.Label(t("vita_altro", lc), style={"fontSize": "12px"}),
-                dcc.Input(id="vb-alt", type="number", value=200, min=0, max=3000, step=50, className="form-control"),
-            ], width=4),
+                html.H6(f"📤 {t('vita_uscite', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
+                *_budget_row(t("vita_affitto", lc), "vb-aff", 1600, 0, 10000, 50),
+                *_budget_row(t("vita_cibo", lc), "vb-cibo", 700, 0, 5000, 50),
+                *_budget_row(t("vita_trasporto", lc), "vb-tras", 300, 0, 3000, 50),
+                *_budget_row(t("vita_salute", lc), "vb-sal", 500, 0, 5000, 50),
+                *_budget_row(t("vita_intrattenimento", lc), "vb-int", 300, 0, 3000, 50),
+                *_budget_row(t("vita_asilo", lc), "vb-asilo", 800 if figli else 0, 0, 5000, 50),
+                *_budget_row(t("vita_altro", lc), "vb-alt", 200, 0, 3000, 50),
+            ], md=4),
             dbc.Col([
-                html.H6(f"🎯 {t('vita_risparmio_target', lc)}"),
-                dcc.Input(id="vb-risp-target", type="number", value=int(reddito_mensile * 0.15), min=0, max=10000, step=100, className="form-control"),
+                html.H6(f"🎯 {t('vita_risparmio_target', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
+                dcc.Input(id="vb-risp-target", type="number", value=int(reddito_mensile * 0.15),
+                          min=0, max=10000, step=100, className="form-control form-control-sm",
+                          style={"marginBottom": "12px"}),
                 html.Hr(),
                 html.Div(id="vb-kpis"),
                 html.Div(id="vb-semaforo", style={"marginTop": "12px"}),
-            ], width=4),
+            ], md=4),
         ], className="mb-4 g-3"),
         dbc.Row([
             dbc.Col([dcc.Graph(id="vb-pie", config={"displayModeBar": False})], width=6),

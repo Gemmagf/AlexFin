@@ -46,15 +46,17 @@ body { background: #f0f2f7; margin: 0; }
 /* sidebar inputs */
 #sidebar input[type="number"],
 #sidebar input[type="text"] {
-  background: rgba(255,255,255,0.09) !important;
-  border: 1px solid rgba(255,255,255,0.18) !important;
-  color: #fff !important;
+  background: rgba(255,255,255,0.93) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
+  color: #1e2235 !important;
   border-radius: 7px;
   font-size: 0.87rem;
   padding: 6px 10px;
   width: 100%;
   transition: border-color 0.2s;
 }
+#sidebar input[type="number"]::placeholder,
+#sidebar input[type="text"]::placeholder { color: #999 !important; }
 #sidebar input:focus {
   border-color: #c0392b !important;
   box-shadow: 0 0 0 2px rgba(192,57,43,0.3) !important;

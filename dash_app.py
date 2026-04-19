@@ -174,12 +174,12 @@ body, * { font-family: 'Inter', sans-serif !important; }
 }
 #sidebar h5, #sidebar h6, #sidebar label, #sidebar .form-label { color: #d8dce8 !important; }
 #sidebar .form-control, #sidebar .form-select {
-    background: rgba(255,255,255,0.1) !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
-    color: #ffffff !important;
+    background: rgba(255,255,255,0.93) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: #1e2235 !important;
     font-size: 13px;
 }
-#sidebar .form-control::placeholder { color: rgba(255,255,255,0.4) !important; }
+#sidebar .form-control::placeholder { color: #999 !important; }
 #sidebar .form-check-label { color: #d8dce8 !important; }
 #sidebar .form-check-input { border-color: rgba(255,255,255,0.3) !important; }
 #sidebar hr { border-color: rgba(255,255,255,0.15) !important; }
@@ -316,7 +316,7 @@ def make_sidebar():
             dcc.Dropdown(
                 id="sb-canton",
                 options=[{"label": c, "value": c} for c in CANTON_LIST],
-                value="Ticino",
+                value="Zürich",
                 clearable=False,
                 style={"fontSize": "13px", "marginBottom": "10px"},
             ),
@@ -418,7 +418,7 @@ app.layout = html.Div([
         "eta": 38,
         "sesso": "M",
         "situazione": "Dipendente",
-        "canton": "Ticino",
+        "canton": "Zürich",
         "reddito_mensile": 5500,
         "stato_civile": "Single",
         "figli": False,
@@ -477,7 +477,7 @@ def update_store(lc, nome, eta, sesso, sit, canton, reddito, sc, figli_val, n_fi
         "eta": int(eta),
         "sesso": sesso or "M",
         "situazione": situazione,
-        "canton": canton or "Ticino",
+        "canton": canton or "Zürich",
         "reddito_mensile": int(reddito),
         "stato_civile": sc or "Single",
         "figli": figli,
@@ -521,6 +521,60 @@ def update_summary(store):
         html.Div(f"📅 {t('sidebar_anni_pens', lc)}: {anni_p}"),
         html.Div(f"💰 {t('sidebar_reddito_annuo', lc)}: CHF {int(reddito)*12:,}"),
     ]
+
+
+@callback(
+    Output("sb-profilo-label", "children"),
+    Output("sb-nome-lbl", "children"),
+    Output("sb-nome", "placeholder"),
+    Output("sb-eta-lbl", "children"),
+    Output("sb-sesso-lbl", "children"),
+    Output("sb-sit-lbl", "children"),
+    Output("sb-sit", "options"),
+    Output("sb-canton-lbl", "children"),
+    Output("sb-reddito-lbl", "children"),
+    Output("sb-sc-lbl", "children"),
+    Output("sb-sc", "options"),
+    Output("sb-figli-lbl", "children"),
+    Output("sb-figli", "options"),
+    Output("sb-nfigli-lbl", "children"),
+    Output("sb-ipot-lbl", "children"),
+    Output("sb-ipot", "options"),
+    Output("sb-rischio-lbl", "children"),
+    Output("sb-rischio", "marks"),
+    Input("app-store", "data"),
+)
+def update_sidebar_i18n(store):
+    store = store or {}
+    lc = store.get("lc", "it")
+    sit_opts = t("sidebar_situazione_opt", lc)
+    sc_opts  = t("sidebar_stato_civile_opt", lc)
+    fi_opts  = t("sidebar_figli_opt", lc)
+    ip_opts  = t("sidebar_ipoteca_opt", lc)
+    ri_opts  = t("sidebar_rischio_opt", lc)
+    # Keep internal values Italian so calcola_raccomandazioni keeps working
+    sit_vals = ["Dipendente", "Indipendente", "Pensionato", "Disoccupato"]
+    sc_vals  = ["Single", "Sposato/a", "Divorziato/a", "Vedovo/a"]
+    return (
+        f"👤 {t('sidebar_profilo', lc)}",
+        t("sidebar_nome", lc),
+        t("sidebar_nome_ph", lc),
+        t("sidebar_eta", lc),
+        t("sidebar_sesso", lc),
+        t("sidebar_situazione", lc),
+        [{"label": l, "value": v} for l, v in zip(sit_opts, sit_vals)],
+        t("sidebar_canton", lc),
+        t("sidebar_reddito", lc),
+        t("sidebar_stato_civile", lc),
+        [{"label": l, "value": v} for l, v in zip(sc_opts, sc_vals)],
+        t("sidebar_figli", lc),
+        [{"label": f" {fi_opts[0]}", "value": "No"}, {"label": f" {fi_opts[1]}", "value": "Si"}],
+        t("sidebar_n_figli", lc),
+        t("sidebar_ipoteca", lc),
+        [{"label": f" {ip_opts[0]}", "value": "No"}, {"label": f" {ip_opts[1]}", "value": "Si"}],
+        t("sidebar_rischio", lc),
+        {0: ri_opts[0], 1: ri_opts[1], 2: ri_opts[2]},
+    )
 
 
 if __name__ == "__main__":

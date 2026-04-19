@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "AlexFin",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/gemmagardela/Documents/git_projects/AlexFin/start_dash.sh"],
+      "port": 8050
+    }
+  ]
+}
