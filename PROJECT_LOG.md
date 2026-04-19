@@ -1,7 +1,54 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-19  
+> Última actualització: 2026-04-19 (sessió 3)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 3 (2026-04-19)
+
+### i18n complet — canvi d'idioma en temps real
+**Problema:** El canvi d'idioma al selector del sidebar només actualitzava alguns títols de pàgina. Les labels del formulari lateral, les opcions dels dropdowns, els marks del slider i les etiquetes dels tabs de totes les pàgines quedaven sempre en italià.
+
+**Causa:** `make_sidebar()` crea el layout una sola vegada com a HTML estàtic. `layout()` de cada pàgina fa el mateix amb `dbc.Tabs`. Cap d'ells tenia un callback que els re-renderitzés quan canviava `lc`.
+
+**Solució:**
+- `dash_app.py`: nou callback `update_sidebar_i18n` amb 18 Outputs → tradueix en temps real totes les labels, placeholders, opcions de dropdowns (situazione, stato_civile, figli, ipoteca) i marks del slider (rischio). Els **valors interns** dels dropdowns resten en italià per mantenir compatibilitat amb `calcola_raccomandazioni()`.
+- `advisor.py`, `assegurances.py`, `vida_budget.py`: els `dbc.Tabs` s'han mogut del `layout()` estàtic a un callback (`render_header`) que rep `app-store` → les etiquetes es tradueixen quan canvia l'idioma.
+
+### Inputs sidebar: text visible
+**Problema:** Les lletres no es veien quan l'usuari escrivia el nom, edat, etc. al formulari del sidebar.  
+**Causa:** `color: #ffffff` (text blanc) sobre un fons quasi-transparent molt fosc → invisible.  
+**Solució:** `color: #1e2235` (gris fosc) + `background: rgba(255,255,255,0.93)` (fons blanc translúcid). Placeholders en `#999`. Canvi aplicat a `assets/style.css` i al `CUSTOM_CSS` de `dash_app.py`.
+
+### Cantó per defecte: Zürich
+El sidebar i el store inicial ara parteixen de **Zürich** en lloc de Ticino, que és el mercat principal de l'assessor.
+
+### Budget mensile: text de les cel·les
+**Problema:** Les etiquetes dels camps del formulari (Affitto, Alimentazione, etc.) eren massa grans i es veien tallades.  
+**Solució:** Helper intern `_budget_row(label, input_id, ...)` → font `0.72rem`, `text-overflow: ellipsis`, `white-space: nowrap`, inputs `form-control-sm` (font `0.82rem`, padding reduït).
+
+### Fonts oficials suïsses
+**Fitxer nou:** `sources.py`  
+Conté 20 links a pàgines oficials de la Confederació Helvètica i organismes reconeguts, agrupats per secció:
+
+| Secció | Fonts |
+|---|---|
+| Assicurazioni | FINMA, SVV, Ombudsman assegurances |
+| Krankenkasse | UFSP/BAG, priminfo.admin.ch, Ombudsman casses malats |
+| Previdenza | AHV-IV.ch, UFAS (LPP), UFAS (3a), Compenswiss |
+| Budget | ch.ch, Budgetberatung Schweiz, SECO |
+| Advisor | ch.ch, FINMA, AFC (fiscalitat) |
+| Prospecting | SCICC, economiesuisse, SECO, Swiss Global Enterprise |
+
+La funció `sources_footer(section)` retorna un component Dash amb els links com a peu de pàgina. S'ha afegit a totes les pàgines (advisor, assegurances, krankenkasse, previdenza, budget, fasi di vita, obiettivi, events, spots).
+
+### Deploy preparat
+- `Procfile`, `runtime.txt`, `gunicorn` a `requirements.txt`
+- `AUTH_USER`, `AUTH_PASS`, `SECRET_KEY` via variables d'entorn
+- Pàgina de login branded (disseny AlexFin, HTML/CSS inline)
+- Botó "⎋ Esci" al navbar
+- `main` branch sincronitzat i llest per Render.com
 
 ---
 
@@ -374,7 +421,7 @@ python3 dash_app.py
 
 ## 🔮 Possibles millores futures
 
-- Exportació de l'informe del client en PDF
+- **Informe PDF de reunió** — exportar gràfics Plotly + recomanacions + notes en PDF professional (sol·licitat, pendent d'implementació)
 - Integració amb Google Calendar per a les cites
 - Enviament d'emails via SendGrid (evita restriccions SMTP en producció)
 - Mapa interactiu dels events de networking (Plotly Mapbox)
