@@ -18,6 +18,7 @@ import dash_bootstrap_components as dbc
 from i18n import t
 from products import calcola_raccomandazioni
 from sources import sources_footer
+from pdf_report import genera_pdf
 
 dash.register_page(__name__, path="/advisor", name="Advisor")
 
@@ -93,6 +94,9 @@ def layout():
         dcc.Store(id="temi-store", data=[]),
         dcc.Store(id="crm-trigger", data=0),
         dcc.Store(id="email-status", data=""),
+
+        # PDF download component (lives outside tabs so it always exists in DOM)
+        dcc.Download(id="pdf-download"),
     ])
 
 
@@ -387,6 +391,15 @@ def render_note(lc, nome, eta, situazione, store):
             dbc.Col([
                 html.H6(f"📄 {t('note_riepilogo', lc)}"),
                 html.Div(id="note-riepilogo-box"),
+                dbc.Button(
+                    "📥 Scarica PDF riunione",
+                    id="pdf-btn",
+                    color="danger",
+                    outline=True,
+                    size="sm",
+                    className="w-100 mb-2 mt-2",
+                ),
+                html.Div(id="pdf-feedback", style={"fontSize": "12px", "marginBottom": "8px"}),
                 html.Hr(),
                 html.H6(t("email_header", lc)),
                 dbc.Accordion([
@@ -486,6 +499,48 @@ AlexFin · SVAG · {oggi}
     return html.Pre(txt, style={"background": "#f8f9fc", "borderRadius": "8px", "padding": "14px",
                                 "fontSize": "11px", "maxHeight": "340px", "overflowY": "auto",
                                 "border": "1px solid #eee", "whiteSpace": "pre-wrap"})
+
+
+@callback(
+    Output("pdf-download", "data"),
+    Output("pdf-feedback", "children"),
+    Input("pdf-btn", "n_clicks"),
+    State("note-libere", "value"),
+    State("note-passi", "value"),
+    State("note-urgenza", "value"),
+    State("note-store-data", "data"),
+    State("note-lc-store", "data"),
+    *[State(f"tema-{i}", "value") for i in range(len(TEMI_LISTA))],
+    prevent_initial_call=True,
+)
+def download_pdf(n_clicks, note_libere, prossimi, urgenza_idx, store, lc, *temi_vals):
+    store = store or {}
+    lc    = lc or "it"
+    nome  = store.get("nome") or "Cliente"
+
+    temi_discussi = []
+    for vals in temi_vals:
+        if vals:
+            temi_discussi.extend(vals)
+
+    urgenza_opts  = t("note_urgenza_opt", lc)
+    urgenza_label = urgenza_opts[urgenza_idx or 1]
+
+    try:
+        pdf_bytes = genera_pdf(
+            store=store,
+            note_libere=note_libere or "",
+            prossimi_passi=prossimi or "",
+            temi_discussi=temi_discussi,
+            urgenza_label=urgenza_label,
+        )
+        oggi = date.today().strftime("%Y%m%d")
+        filename = f"AlexFin_{nome.replace(' ', '_')}_{oggi}.pdf"
+        feedback = html.Div(f"✅ PDF generato: {filename}", style={"color": "#27ae60", "fontSize": "12px"})
+        return dcc.send_bytes(pdf_bytes, filename), feedback
+    except Exception as e:
+        feedback = html.Div(f"❌ Errore PDF: {e}", style={"color": "#e74c3c", "fontSize": "12px"})
+        return dash.no_update, feedback
 
 
 @callback(

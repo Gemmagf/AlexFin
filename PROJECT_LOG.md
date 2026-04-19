@@ -1,7 +1,44 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-19 (sessió 3)  
+> Última actualització: 2026-04-19 (sessió 4)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 4 (2026-04-19)
+
+### PDF exportable de la reunió
+**Fitxer nou:** `pdf_report.py`  
+Genera un informe PDF complet de cada reunió amb el client. El botó **"Scarica PDF riunione"** apareix al tab *Note* de la pàgina Advisor, just sota el resum del col·loqui.
+
+**Contingut del PDF (1 pàgina A4):**
+1. **Header en vermell AlexFin** — Nom del client, data, cantó
+2. **Perfil del client** — Taula 3 columnes: edat, situació, cantó, reddito, estat civil, fills, hipoteca, risc, anys fins jubilació
+3. **KPI row** — 5 caixes: reddito anual, pensió estimada, AVS, LPP, lacuna (vermell/verd)
+4. **Gràfic de barres horitzontals** — AVS / LPP / Lacuna previdenziale, dibuixat amb primitives `fpdf2` (sense imatges externes, sense kaleido)
+5. **Recomanacions** — Llista priorizada (ALTA / RACCOMANDATA / OPZIONALE) amb raonament
+6. **Notes del col·loqui** — Temes discutits, pròxims passos, notes lliures, urgència
+7. **Disclaimer legal** al peu de pàgina
+
+**Arquitectura:**
+- `fpdf2 >= 2.7.9` (pure Python, sense dependències de sistema → compatible Render.com)
+- Funció `_s(text)`: sanititzador latin-1 → substitueix en-dash, em-dash, cometes tipogràfiques, bullets, caràcters fora de rang. Helvetica de fpdf2 és codificació latin-1.
+- `AlexFinPDF(FPDF)`: subclasse amb footer autònom (número de pàgina + data)
+- `genera_pdf(store, note_libere, prossimi_passi, temi_discussi, urgenza_label) → bytes`
+
+**Integració Dash:**
+- `dcc.Download(id="pdf-download")` al `layout()` de `advisor.py` (fora dels tabs perquè sempre existeixi al DOM)
+- Botó `dbc.Button(id="pdf-btn")` al tab Note, sota el riepilogo-box
+- Callback `download_pdf`: rep tots els States de nota + store → crida `genera_pdf()` → retorna `dcc.send_bytes(pdf_bytes, filename)`
+- Nom del fitxer: `AlexFin_<NomeCognome>_<YYYYMMDD>.pdf`
+
+**Fitxers canviats:** `pdf_report.py` (nou), `dash_pages/advisor.py`, `requirements.txt`
+
+### CRM: clients demo afegits
+**Fitxer nou:** `clienti.json`  
+6 clients demo precarregats:
+- 5 **chiusi** (tancats) amb dates reals nov 2025 – mar 2026: Marco Ferretti, Petra Müller, Luca Bernasconi, Ana Popescu, Stefan Brunner
+- 1 **da_chiudere** (per tancar): Yuki Tanaka, expat japonesa, follow-up 28 abril, proposta 3a assicurativo + complementare dental/vista
 
 ---
 

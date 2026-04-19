@@ -11,5 +11,8 @@ numpy>=1.26.0
 # Images & utilities
 Pillow>=10.0.0
 
+# PDF generation (meeting report)
+fpdf2>=2.7.9
+
 # Production server
 gunicorn>=21.2.0
