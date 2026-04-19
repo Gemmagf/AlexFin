@@ -32,6 +32,14 @@ Genera un informe PDF complet de cada reunió amb el client. El botó **"Scarica
 - Callback `download_pdf`: rep tots els States de nota + store → crida `genera_pdf()` → retorna `dcc.send_bytes(pdf_bytes, filename)`
 - Nom del fitxer: `AlexFin_<NomeCognome>_<YYYYMMDD>.pdf`
 
+**Contingut final del PDF** (les notes del col·loqui NO s'inclouen — queden privades al tab Note):
+1. Header branded AlexFin (vermell)
+2. Perfil del client (taula 3 columnes)
+3. KPI row (5 caixes: reddito, pensió, AVS, LPP, Lacuna)
+4. Gràfic barres previdenziali + target 70%
+5. Recomanacions prioritzades
+6. Disclaimer legal
+
 **Fitxers canviats:** `pdf_report.py` (nou), `dash_pages/advisor.py`, `requirements.txt`
 
 ### CRM: clients demo afegits
