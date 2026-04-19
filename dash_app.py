@@ -1,8 +1,10 @@
 # dash_app.py — AlexFin Dash Entry Point
 # Dash 4.x multi-page app with sidebar + top navbar
 
+import os
 import dash
 from dash import Dash, html, dcc, callback, Input, Output, State, page_container
+from flask import session, redirect, request, render_template_string
 import dash_bootstrap_components as dbc
 
 from i18n import LANGUAGES, t, get_lang_code
@@ -24,6 +26,133 @@ app = Dash(
 )
 
 server = app.server
+
+# ─────────────────────────────────────────────
+# AUTH — Flask session-based login
+# ─────────────────────────────────────────────
+
+server.secret_key = os.environ.get("SECRET_KEY", "alexfin-dev-secret-change-in-prod")
+AUTH_USER = os.environ.get("AUTH_USER", "alex")
+AUTH_PASS = os.environ.get("AUTH_PASS", "svag2026")
+
+_LOGIN_HTML = """<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlexFin — Accesso</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, body { font-family: 'Inter', sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e2235 0%, #151929 60%, #0f121e 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card {
+    background: white; border-radius: 20px;
+    padding: 48px 44px; width: 100%; max-width: 420px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+  }
+  .logo-flag { font-size: 2rem; }
+  .logo-text { font-size: 1.5rem; font-weight: 800; color: #1e2235; }
+  .logo-text span { color: #c0392b; }
+  .subtitle { font-size: 0.85rem; color: #888; margin-top: 2px; }
+  label {
+    display: block; font-size: 0.78rem; font-weight: 700;
+    color: #555; margin-bottom: 6px; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 11px 14px; border-radius: 10px;
+    border: 1.5px solid #dde0e8; font-size: 0.95rem;
+    font-family: inherit; margin-bottom: 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input:focus { border-color: #c0392b; box-shadow: 0 0 0 3px rgba(192,57,43,0.12); }
+  button {
+    width: 100%; padding: 13px; background: #c0392b;
+    color: white; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: background 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+  button:hover { background: #a93226; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  .error {
+    background: #fde8e8; color: #c0392b; border-radius: 10px;
+    padding: 11px 14px; font-size: 0.85rem; font-weight: 600;
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .footer-note {
+    text-align: center; color: #bbb; font-size: 0.72rem; margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <span class="logo-flag">🇨🇭</span>
+    <div>
+      <div class="logo-text"><span>Alex</span>Fin</div>
+      <div class="subtitle">Advisor Tool · SVAG</div>
+    </div>
+  </div>
+  {% if error %}
+  <div class="error">⚠️ {{ error }}</div>
+  {% endif %}
+  <form method="POST" action="/login">
+    <label for="username">Utente</label>
+    <input type="text" id="username" name="username" placeholder="nome utente" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+    <button type="submit">→ Accedi</button>
+  </form>
+  <div class="footer-note">Uso professionale riservato · © 2026 SVAG</div>
+</div>
+</body>
+</html>
+"""
+
+
+@server.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        u = request.form.get("username", "").strip()
+        p = request.form.get("password", "")
+        if u == AUTH_USER and p == AUTH_PASS:
+            session["auth"] = True
+            return redirect(request.args.get("next", "/"))
+        error = "Credenziali non valide. Riprova."
+    return render_template_string(_LOGIN_HTML, error=error)
+
+
+@server.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
+_PUBLIC_PREFIXES = ("/login", "/assets", "/_favicon")
+
+@server.before_request
+def require_login():
+    # Allow public paths
+    if any(request.path.startswith(p) for p in _PUBLIC_PREFIXES):
+        return
+    # Dash internal AJAX calls: return 401 (not redirect) so JS doesn't break
+    if request.path.startswith("/_dash"):
+        if not session.get("auth"):
+            return ("Unauthorized", 401)
+        return
+    # All other routes require session
+    if not session.get("auth"):
+        return redirect(f"/login?next={request.path}")
 
 # ─────────────────────────────────────────────
 # CUSTOM CSS
@@ -259,6 +388,17 @@ def make_navbar():
                     className="me-auto",
                 ),
                 html.Div(id="client-badge", children="👤 Advisor"),
+                html.A(
+                    "⎋ Esci",
+                    href="/logout",
+                    style={
+                        "color": "rgba(255,255,255,0.55)", "fontSize": "0.8rem",
+                        "fontWeight": "600", "textDecoration": "none",
+                        "marginLeft": "16px", "padding": "4px 12px",
+                        "border": "1px solid rgba(255,255,255,0.2)",
+                        "borderRadius": "6px", "transition": "all 0.18s",
+                    }
+                ),
             ],
         ),
         dark=True,
