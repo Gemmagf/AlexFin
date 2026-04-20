@@ -173,13 +173,19 @@ body, * { font-family: 'Inter', sans-serif !important; }
     overflow-y: auto;
 }
 #sidebar h5, #sidebar h6, #sidebar label, #sidebar .form-label { color: #d8dce8 !important; }
-#sidebar .form-control, #sidebar .form-select {
+#sidebar .form-control, #sidebar .form-select,
+#sidebar .Select-control, #sidebar .dash-dropdown .Select-control {
     background: rgba(255,255,255,0.93) !important;
     border: 1px solid rgba(255,255,255,0.3) !important;
     color: #1e2235 !important;
     font-size: 13px;
 }
 #sidebar .form-control::placeholder { color: #999 !important; }
+#sidebar .Select-value-label, #sidebar .Select-placeholder,
+#sidebar .Select-single-value, #sidebar .Select-input input { color: #1e2235 !important; }
+#sidebar .Select-menu-outer { background: #fff !important; border-radius: 8px !important; z-index: 9999; }
+#sidebar .Select-option { color: #1e2235 !important; }
+#sidebar .Select-option.is-focused, #sidebar .Select-option:hover { background: rgba(192,57,43,0.1) !important; color: #c0392b !important; }
 #sidebar .form-check-label { color: #d8dce8 !important; }
 #sidebar .form-check-input { border-color: rgba(255,255,255,0.3) !important; }
 #sidebar hr { border-color: rgba(255,255,255,0.15) !important; }

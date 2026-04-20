@@ -63,28 +63,32 @@ body { background: #f0f2f7; margin: 0; }
   outline: none;
 }
 
-/* sidebar dcc.Dropdown */
-#sidebar .Select-control {
-  background: rgba(255,255,255,0.09) !important;
-  border: 1px solid rgba(255,255,255,0.18) !important;
+/* sidebar dcc.Dropdown — white bg + dark text (same as inputs) */
+#sidebar .Select-control,
+#sidebar .dash-dropdown .Select-control {
+  background: rgba(255,255,255,0.93) !important;
+  border: 1px solid rgba(255,255,255,0.3) !important;
   border-radius: 7px !important;
   min-height: 34px !important;
 }
 #sidebar .Select-value-label,
 #sidebar .Select-placeholder,
-#sidebar .Select-input input { color: #d8dce8 !important; font-size: 0.87rem !important; }
-#sidebar .Select-arrow { border-top-color: #a0a8c0 !important; }
-#sidebar .Select-arrow-zone:hover .Select-arrow { border-top-color: #fff !important; }
+#sidebar .Select-single-value,
+#sidebar .Select-input input,
+#sidebar .dash-dropdown input { color: #1e2235 !important; font-size: 0.87rem !important; }
+#sidebar .Select-arrow { border-top-color: #555 !important; }
+#sidebar .Select-arrow-zone:hover .Select-arrow { border-top-color: #c0392b !important; }
 #sidebar .Select-menu-outer {
-  background: #1e2a42 !important;
-  border: 1px solid rgba(255,255,255,0.15) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
   border-radius: 8px !important;
   z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
 }
-#sidebar .Select-option { background: transparent !important; color: #c8cfe0 !important; font-size: 0.87rem; }
+#sidebar .Select-option { background: transparent !important; color: #1e2235 !important; font-size: 0.87rem; }
 #sidebar .Select-option.is-focused,
-#sidebar .Select-option:hover { background: rgba(192,57,43,0.25) !important; color: #fff !important; }
-#sidebar .Select-option.is-selected { background: rgba(192,57,43,0.4) !important; color: #fff !important; }
+#sidebar .Select-option:hover { background: rgba(192,57,43,0.1) !important; color: #c0392b !important; }
+#sidebar .Select-option.is-selected { background: rgba(192,57,43,0.15) !important; color: #c0392b !important; font-weight: 600; }
 
 /* sidebar radio items */
 #sidebar .form-check-label { color: #c8cfe0 !important; font-size: 0.87rem; }
