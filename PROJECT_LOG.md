@@ -1,7 +1,35 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-20 (sessió 6)  
+> Última actualització: 2026-04-20 (sessió 6b)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 6b (2026-04-20) — Deploy Render.com
+
+### `render.yaml` — Configuració automàtica de deploy
+**Fitxer nou:** `render.yaml`  
+Afegida configuració de Render.com per poder fer deploy amb un sol clic des del dashboard.
+
+**Contingut:**
+- Servei tipus `web`, runtime Python
+- Build: `pip install -r requirements.txt`
+- Start: `gunicorn dash_app:server --workers 1 --timeout 120`
+- Pla: `free`
+- Branca: `upgrade-streamlit-app`
+- Variables d'entorn preconfigurades:
+  - `SECRET_KEY` → generada automàticament per Render
+  - `AUTH_USER` → `alex` (valor per defecte, canviable al dashboard)
+  - `AUTH_PASS` → marcada com `sync: false` (cal posar-la manualment al dashboard per seguretat)
+
+**Com fer el deploy:**
+1. Ves a [render.com](https://render.com) → **New → Web Service**
+2. Connecta el repo GitHub `AlexFin`
+3. Render detecta el `render.yaml` automàticament
+4. A la secció **Environment Variables**, posa el valor de `AUTH_PASS`
+5. Fes clic a **Deploy** — l'app quedarà pública amb login protegit
+
+**Fitxers canviats:** `render.yaml` (nou)
 
 ---
 
