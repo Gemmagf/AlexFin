@@ -1,7 +1,32 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-19 (sessió 4)  
+> Última actualització: 2026-04-20 (sessió 5)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 5 (2026-04-20)
+
+### i18n Home page — textos hardcoded eliminats
+**Problema:** La pàgina Home tenia tots els textos en italià independent de l'idioma seleccionat: títols i descripcions de les 4 targetes de mòdul, les 4 estadístiques, el botó "→ Apri" i el títol de secció "Moduli".
+
+**Solució:**
+- `i18n.py` — afegides 14 noves claus `home_*` al bloc `_EXTRA` per a **IT, DE, FR, EN i CA**. Les altres 6 llengua fan fallback a italià via el mecanisme existent.
+  - `home_open`, `home_moduli`
+  - `home_mod_advisor/ass/budget/prosp_title` i `_desc` (amb params `{n_ev}`, `{n_sp}`, `{n_em}`)
+  - `home_stat_lingue/eventi/pilastri/crm`
+- `dash_pages/home.py` — refactoritzat: tots els strings literals substituïts per `t(key, lc)`. Nova funció `stat_box()` per DRY. La descripció de Prospecting usa `.format(n_ev=n_ev, n_sp=n_sp, n_em=n_em)`.
+
+### Dropdowns sidebar — text unificat a gris fosc
+**Problema:** Dins el sidebar, els camps de text (`dcc.Input`) mostraven text gris fosc sobre fons blanc, però els desplegables (`dcc.Dropdown`) mostraven text clar sobre fons quasi-transparent (fosc). Aparença inconsistent.
+
+**Solució:** `assets/style.css` i `CUSTOM_CSS` a `dash_app.py` — els selectors `.Select-control` del sidebar ara reben el mateix tractament que els `.form-control`:
+- `background: rgba(255,255,255,0.93)` — fons blanc
+- `color: #1e2235` — text gris fosc
+- `.Select-value-label`, `.Select-placeholder`, `.Select-single-value`, `.Select-input input` → tots `color: #1e2235`
+- Menú desplegable: fons blanc amb ombra, opcions en fosc; hover en vermell AlexFin
+
+**Fitxers canviats:** `assets/style.css`, `dash_app.py`, `i18n.py`, `dash_pages/home.py`
 
 ---
 
