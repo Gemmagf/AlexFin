@@ -212,7 +212,7 @@ def render_tab(active_tab, store):
     if active_tab == "tab-events":
         return html.Div([render_events(lc), footer])
     elif active_tab == "tab-spots":
-        return html.Div([render_spots(), footer])
+        return html.Div([render_spots(lc), footer])
     elif active_tab == "tab-email":
         return render_email(store, lc)
     elif active_tab == "tab-log":
@@ -324,29 +324,31 @@ def filter_events(city, ev_type, freq, lc):
 # TAB 2 — SPOTS
 # ─────────────────────────────────────────────
 
-def render_spots():
+def render_spots(lc="it"):
     return html.Div([
         html.Div(
             [
-                html.Label("📂 Categoria", style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
+                html.Label(t("prosp_filter_cat", lc), style={"fontSize": "0.8rem", "fontWeight": "700", "color": "#555", "marginBottom": "4px"}),
                 dcc.Dropdown(
                     id="sp-cat-filter",
-                    options=[{"label": "Tutte le categorie", "value": "all"}] + [{"label": c, "value": c} for c in SPOT_CATEGORIES],
+                    options=[{"label": t("prosp_all_cat", lc), "value": "all"}] + [{"label": c, "value": c} for c in SPOT_CATEGORIES],
                     value="all", clearable=False, style={"fontSize": "0.87rem", "maxWidth": "380px"},
                 ),
             ],
             style={"background": "white", "borderRadius": "14px", "padding": "16px 20px",
                    "marginBottom": "16px", "boxShadow": "0 2px 12px rgba(0,0,0,0.05)", "border": "1px solid #eaecf2"},
         ),
+        dcc.Store(id="prosp-spots-lc-store", data=lc),
         html.Div(id="sp-list"),
     ])
 
 
-@callback(Output("sp-list", "children"), Input("sp-cat-filter", "value"))
-def filter_spots(cat):
+@callback(Output("sp-list", "children"), Input("sp-cat-filter", "value"), Input("prosp-spots-lc-store", "data"))
+def filter_spots(cat, lc):
+    lc = lc or "it"
     filtered = NETWORKING_SPOTS if not cat or cat == "all" else [s for s in NETWORKING_SPOTS if s["category"] == cat]
     if not filtered:
-        return html.Div("Nessun risultato.", style={"color": "#888", "padding": "40px", "textAlign": "center"})
+        return html.Div(t("prosp_no_results", lc), style={"color": "#888", "padding": "40px", "textAlign": "center"})
     by_cat = {}
     for sp in filtered:
         by_cat.setdefault(sp["category"], []).append(sp)
@@ -412,11 +414,11 @@ def render_email(store, lc="it"):
                             dbc.Row([
                                 dbc.Col([html.Label("SMTP Server", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                                          dbc.Input(id="em-smtp-srv", value="smtp.gmail.com", size="sm")], md=6),
-                                dbc.Col([html.Label("Porta", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                                dbc.Col([html.Label(t("smtp_porta", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                                          dbc.Input(id="em-smtp-port", value="587", size="sm")], md=6),
                             ], className="g-2 mb-2"),
                             dbc.Row([
-                                dbc.Col([html.Label("Email mittente", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
+                                dbc.Col([html.Label(t("smtp_mittente", lc), style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                                          dbc.Input(id="em-smtp-user", placeholder="tuoindirizzo@gmail.com", size="sm")], md=6),
                                 dbc.Col([html.Label("Password / App Password", style={"fontSize": "0.78rem", "fontWeight": "600", "color": "#666"}),
                                          dbc.Input(id="em-smtp-pass", type="password", size="sm")], md=6),

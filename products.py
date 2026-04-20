@@ -1,6 +1,8 @@
 # products.py — AlexFin Advisor Tool
 # Catalogo prodotti: Assicurazioni, Krankenkasse, Previdenza
 
+from i18n import t as _t
+
 # ─────────────────────────────────────────────
 # ASSICURAZIONI PRIVATE
 # ─────────────────────────────────────────────
@@ -371,11 +373,12 @@ PILASTRI = {
 # MOTORE DI RACCOMANDAZIONE
 # ─────────────────────────────────────────────
 
-def calcola_raccomandazioni(profilo: dict) -> list:
+def calcola_raccomandazioni(profilo: dict, lc: str = "it") -> list:
     """
     Restituisce lista di raccomandazioni ordinate per priorità.
     profilo: dict con eta, situazione, stato_civile, figli, ipoteca,
              reddito_mensile, tolleranza_rischio
+    lc: language code for i18n (default 'it')
     """
     rac = []
     eta = profilo.get("eta", 35)
@@ -385,27 +388,27 @@ def calcola_raccomandazioni(profilo: dict) -> list:
     reddito = profilo.get("reddito_mensile", 5000)
     reddito_annuo = reddito * 12
 
+    def p(key): return _t(key, lc)  # shortcut
+
     # Assicurazione Vita
     if ha_figli or ha_ipoteca:
-        motivo = []
-        if ha_figli:
-            motivo.append("figli a carico")
-        if ha_ipoteca:
-            motivo.append("ipoteca da proteggere")
+        motivi = []
+        if ha_figli:   motivi.append(p("rac_mot_figli"))
+        if ha_ipoteca: motivi.append(p("rac_mot_ipoteca"))
         rac.append({
-            "prodotto": "Assicurazione Vita",
+            "prodotto": p("rac_prod_vita"),
             "icona": "❤️",
-            "priorita": "🔴 Alta",
-            "motivo": f"Ha {' e '.join(motivo)}. Un decesso prematuro lascerebbe la famiglia senza reddito.",
+            "priorita": "Alta",
+            "motivo": p("rac_mot_vita").format(motivi=" + ".join(motivi)),
         })
 
     # Perdita di Guadagno
     if situazione == "Indipendente":
         rac.append({
-            "prodotto": "Perdita di Guadagno",
+            "prodotto": p("rac_prod_perdita"),
             "icona": "🤒",
-            "priorita": "🔴 Alta",
-            "motivo": "Come indipendente non ha copertura automatica dal datore. Una malattia lunga = reddito zero.",
+            "priorita": "Alta",
+            "motivo": p("rac_mot_perdita"),
         })
 
     # Invalidità
@@ -413,36 +416,38 @@ def calcola_raccomandazioni(profilo: dict) -> list:
     lacuna_invalidita = max(reddito_annuo - avs_ai_massima, 0)
     if lacuna_invalidita > 0:
         rac.append({
-            "prodotto": "Assicurazione Invalidità",
+            "prodotto": p("rac_prod_invalidita"),
             "icona": "🦽",
-            "priorita": "🔴 Alta" if situazione == "Indipendente" else "🟡 Raccomandata",
-            "motivo": f"L'AI statale copre max CHF 2,520/mese. Con CHF {reddito:,}/mese di reddito, la lacuna è CHF {lacuna_invalidita:,.0f}/anno.",
+            "priorita": "Alta" if situazione == "Indipendente" else "Raccomandata",
+            "motivo": p("rac_mot_invalidita").format(
+                reddito=f"{reddito:,}", lacuna=f"{lacuna_invalidita:,.0f}"
+            ),
         })
 
     # Infortuni (indipendenti)
     if situazione == "Indipendente":
         rac.append({
-            "prodotto": "Assicurazione Infortuni",
+            "prodotto": p("rac_prod_infortuni"),
             "icona": "🩹",
-            "priorita": "🔴 Alta",
-            "motivo": "I dipendenti sono coperti dal datore via LAA. Gli indipendenti devono stipularla privatamente.",
+            "priorita": "Alta",
+            "motivo": p("rac_mot_infortuni"),
         })
 
     # RC Privata (sempre)
     rac.append({
-        "prodotto": "RC Privata",
+        "prodotto": p("rac_prod_rc"),
         "icona": "🛡️",
-        "priorita": "🟡 Raccomandata",
-        "motivo": f"CHF 100–200/anno per coprire danni a terzi potenzialmente enormi. Costo-beneficio eccellente.",
+        "priorita": "Raccomandata",
+        "motivo": p("rac_mot_rc"),
     })
 
     # Complementare ospedaliera
     if reddito > 4500:
         rac.append({
-            "prodotto": "Complementare Ospedaliera",
+            "prodotto": p("rac_prod_complementare"),
             "icona": "🏥",
-            "priorita": "🟡 Raccomandata",
-            "motivo": "Con il reddito attuale ha senso aggiungere semi-privata per libera scelta del medico.",
+            "priorita": "Raccomandata",
+            "motivo": p("rac_mot_complementare"),
         })
 
     # 3° Pilastro
@@ -451,27 +456,29 @@ def calcola_raccomandazioni(profilo: dict) -> list:
               else PILASTRI["3"]["max_3a_indipendente_2026"])
     risparmio_fiscale = int(max_3a * 0.25)
     rac.append({
-        "prodotto": "3° Pilastro (3a)",
+        "prodotto": p("rac_prod_3a"),
         "icona": "🏦",
-        "priorita": "🟡 Raccomandata",
-        "motivo": f"Versando CHF {max_3a:,}/anno nel 3a, risparmia circa CHF {risparmio_fiscale:,} di imposte ogni anno.",
+        "priorita": "Raccomandata",
+        "motivo": p("rac_mot_3a").format(
+            max_3a=f"{max_3a:,}", risparmio=f"{risparmio_fiscale:,}"
+        ),
     })
 
     # Revisione 2° pilastro
     if eta >= 40:
         rac.append({
-            "prodotto": "Revisione Cassa Pensioni (LPP)",
+            "prodotto": p("rac_prod_lpp"),
             "icona": "🏢",
-            "priorita": "🟡 Raccomandata",
-            "motivo": f"A {eta} anni è il momento giusto per verificare le lacune LPP e considerare acquisti volontari.",
+            "priorita": "Raccomandata",
+            "motivo": p("rac_mot_lpp").format(eta=eta),
         })
 
     # Ottimizzazione KK
     rac.append({
-        "prodotto": "Ottimizzazione Krankenkasse",
+        "prodotto": p("rac_prod_kk"),
         "icona": "💊",
-        "priorita": "⚪ Opzionale",
-        "motivo": "Ogni novembre è possibile cambiare cassa e modello. Un'analisi può far risparmiare CHF 500–2,000/anno.",
+        "priorita": "Opzionale",
+        "motivo": p("rac_mot_kk"),
     })
 
     return rac

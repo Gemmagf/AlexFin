@@ -392,8 +392,8 @@ def update_kk_calcola(fran_att, mod_att, fran_nuo, mod_nuo, premio_base, lc):
         dbc.Col(html.Div([html.Div(t("kk_risp_5anni", lc), className="kpi-label"), html.Div(f"CHF {risp*5:,}", className="kpi-value", style={"color": "#27ae60" if risp > 0 else "#e74c3c"})], className="kpi-box"), width=3),
     ], className="g-3 mb-3")
 
-    alert = (html.Div(f"✅ Risparmio annuo: CHF {risp:,}", className="budget-ok")
-             if risp > 0 else html.Div("La configurazione attuale è già ottimale.", className="budget-warn"))
+    alert = (html.Div(t("kk_risp_ok", lc, risp=f"{risp:,}"), className="budget-ok")
+             if risp > 0 else html.Div(t("kk_ottimale", lc), className="budget-warn"))
 
     return html.Div([metrics, dcc.Graph(figure=fig, config={"displayModeBar": False}), alert])
 
@@ -538,15 +538,18 @@ def update_p3a(versamento_annuo, anni_inv, rend_pct, aliquota, lc):
         cap_tardi += [cap_tardi[-1]] * (n - len(cap_tardi))
     risp_fis = [versamento_annuo * aliquota / 100 * i for i in range(n)]
 
+    _scen_ora = t("prev_scen_ora", lc)
+    _scen_tardi = t("prev_scen_tardi", lc)
+    _scen_fis = t("prev_scen_fis", lc)
     rows = []
     for i in range(n):
-        rows.append({"Anno": i, "CHF": cap_ora[i], "Scenario": "Inizia ora"})
-        rows.append({"Anno": i, "CHF": cap_tardi[i], "Scenario": "Inizia tra 5 anni"})
-        rows.append({"Anno": i, "CHF": risp_fis[i], "Scenario": "Risparmio fiscale"})
+        rows.append({"Anno": i, "CHF": cap_ora[i], "Scenario": _scen_ora})
+        rows.append({"Anno": i, "CHF": cap_tardi[i], "Scenario": _scen_tardi})
+        rows.append({"Anno": i, "CHF": risp_fis[i], "Scenario": _scen_fis})
     df3 = pd.DataFrame(rows)
 
     fig = px.line(df3, x="Anno", y="CHF", color="Scenario",
-                  color_discrete_map={"Inizia ora": "#c0392b", "Inizia tra 5 anni": "#e8a0a0", "Risparmio fiscale": "#27ae60"},
+                  color_discrete_map={_scen_ora: "#c0392b", _scen_tardi: "#e8a0a0", _scen_fis: "#27ae60"},
                   template="plotly_white", height=300)
     fig.update_layout(margin=dict(t=10, b=0), yaxis=dict(tickformat=",.0f"))
 
@@ -613,7 +616,7 @@ def update_lacuna_chart(pct_obiettivo, eta, reddito_mensile, situazione, lc):
                  color_discrete_map={"1° AVS": "#2980b9", "2° LPP": "#27ae60", t("rac_lacuna_warning", lc): "#e74c3c"},
                  template="plotly_white", height=280)
     fig.add_hline(y=obiettivo, line_dash="dash", line_color="#f39c12",
-                  annotation_text=f"Obiettivo {pct_obiettivo}%", annotation_position="top right")
+                  annotation_text=t("prev_obiettivo_pct", lc, pct=pct_obiettivo), annotation_position="top right")
     fig.update_layout(showlegend=False, margin=dict(t=20, b=0))
 
     metrics = dbc.Row([

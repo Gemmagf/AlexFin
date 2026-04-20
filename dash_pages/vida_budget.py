@@ -175,11 +175,11 @@ def update_budget(sal1, sal2, altri, aff, cibo, tras, salute, intrat, asilo, alt
 
     if saldo >= risp_target:
         pct = risp_target / totale_entrate * 100 if totale_entrate > 0 else 0
-        semaforo = html.Div(f"✅ Saldo CHF {saldo:,}/mese. Risparmio {pct:.1f}% — ottimo!", className="budget-ok")
+        semaforo = html.Div(t("vita_sem_ok", lc, saldo=f"{saldo:,}", pct=pct), className="budget-ok")
     elif saldo > 0:
-        semaforo = html.Div(f"⚠️ Saldo positivo (CHF {saldo:,}) ma sotto il target.", className="budget-warn")
+        semaforo = html.Div(t("vita_sem_warn", lc, saldo=f"{saldo:,}"), className="budget-warn")
     else:
-        semaforo = html.Div(f"❌ Saldo negativo: CHF {saldo:,}/mese. Revisione urgente.", className="budget-err")
+        semaforo = html.Div(t("vita_sem_err", lc, saldo=f"{saldo:,}"), className="budget-err")
 
     # Pie chart
     voci = [t("vita_affitto", lc), t("vita_cibo", lc), t("vita_trasporto", lc),
@@ -199,15 +199,18 @@ def update_budget(sal1, sal2, altri, aff, cibo, tras, salute, intrat, asilo, alt
     # 50/30/20
     necessario = aff + cibo + tras + salute + asilo
     discrezionale = intrat + altro
+    _cat = t("vita_categoria", lc)
+    _att = t("vita_attuale", lc)
+    _tar = t("vita_target", lc)
     df_5030 = pd.DataFrame({
-        "Categoria": ["Necessità (50%)", "Discrezionale (30%)", "Risparmio (20%)"],
-        "Attuale (CHF)": [necessario, discrezionale, risp_target],
-        "Target (CHF)": [int(totale_entrate * 0.5), int(totale_entrate * 0.3), int(totale_entrate * 0.2)],
+        _cat: [t("vita_necessita", lc), t("vita_discrezionale", lc), t("vita_risparmio_voce", lc)],
+        _att: [necessario, discrezionale, risp_target],
+        _tar: [int(totale_entrate * 0.5), int(totale_entrate * 0.3), int(totale_entrate * 0.2)],
     })
     table_5030 = dbc.Table.from_dataframe(df_5030, striped=True, hover=True, responsive=True, size="sm")
-    df_melted = df_5030.melt("Categoria", ["Attuale (CHF)", "Target (CHF)"], var_name="Tipo", value_name="CHF")
-    fig_5030 = px.bar(df_melted, x="Categoria", y="CHF", color="Tipo", barmode="group",
-                      color_discrete_map={"Attuale (CHF)": "#c0392b", "Target (CHF)": "#bdc3c7"},
+    df_melted = df_5030.melt(_cat, [_att, _tar], var_name="Tipo", value_name="CHF")
+    fig_5030 = px.bar(df_melted, x=_cat, y="CHF", color="Tipo", barmode="group",
+                      color_discrete_map={_att: "#c0392b", _tar: "#bdc3c7"},
                       template="plotly_white", height=200)
     fig_5030.update_layout(margin=dict(t=10, b=0), xaxis_title="", legend=dict(orientation="h", y=-0.4))
 
@@ -253,28 +256,30 @@ def update_fasi(fase_idx, lc, fase_opts, reddito_mensile):
     fase_idx = fase_idx or 0
     fase = fase_opts[fase_idx]
 
+    _voce = t("vita_costi_tipici", lc)
+    _chfm = t("vita_chf_mese_stimato", lc)
     costi_fase = {
-        fase_opts[0]: {"Abitazione": 1400, "Trasporto": 300, "Alimentazione": 600, "Svago": 500, "KK": 470, "3a": 600, "Risparmio": 500},
-        fase_opts[1]: {"Abitazione": 1900, "Trasporto": 500, "Alimentazione": 1000, "Svago": 700, "KK": 940, "3a": 1200, "Risparmio": 800},
-        fase_opts[2]: {"Abitazione": 2400, "Trasporto": 600, "Alimentazione": 1300, "Asilo/Scuola": 1200, "KK": 1500, "3a": 600, "Risparmio": 400},
-        fase_opts[3]: {"Abitazione": 2500, "Trasporto": 700, "Alimentazione": 1500, "Scuola/Sport": 800, "KK": 1600, "3a": 600, "Risparmio": 600},
-        fase_opts[4]: {"Abitazione": 2200, "Trasporto": 500, "Alimentazione": 1200, "Università": 2000, "KK": 1400, "3a": 600, "Risparmio": 300},
-        fase_opts[5]: {"Abitazione": 2000, "Trasporto": 500, "Alimentazione": 1100, "Svago": 800, "KK": 1800, "3a": 604, "Risparmio": 1200},
-        fase_opts[6]: {"Abitazione": 1800, "Trasporto": 400, "Alimentazione": 1000, "Svago": 700, "KK": 2000, "3a": 604, "Risparmio": 1500},
+        fase_opts[0]: {t("vita_affitto", lc): 1400, t("vita_trasporto", lc): 300, t("vita_cibo", lc): 600, t("vita_intrattenimento", lc): 500, "KK": 470, "3a": 600, t("vita_saldo", lc): 500},
+        fase_opts[1]: {t("vita_affitto", lc): 1900, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1000, t("vita_intrattenimento", lc): 700, "KK": 940, "3a": 1200, t("vita_saldo", lc): 800},
+        fase_opts[2]: {t("vita_affitto", lc): 2400, t("vita_trasporto", lc): 600, t("vita_cibo", lc): 1300, t("vita_asilo", lc): 1200, "KK": 1500, "3a": 600, t("vita_saldo", lc): 400},
+        fase_opts[3]: {t("vita_affitto", lc): 2500, t("vita_trasporto", lc): 700, t("vita_cibo", lc): 1500, t("vita_intrattenimento", lc): 800, "KK": 1600, "3a": 600, t("vita_saldo", lc): 600},
+        fase_opts[4]: {t("vita_affitto", lc): 2200, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1200, "Univ.": 2000, "KK": 1400, "3a": 600, t("vita_saldo", lc): 300},
+        fase_opts[5]: {t("vita_affitto", lc): 2000, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1100, t("vita_intrattenimento", lc): 800, "KK": 1800, "3a": 604, t("vita_saldo", lc): 1200},
+        fase_opts[6]: {t("vita_affitto", lc): 1800, t("vita_trasporto", lc): 400, t("vita_cibo", lc): 1000, t("vita_intrattenimento", lc): 700, "KK": 2000, "3a": 604, t("vita_saldo", lc): 1500},
     }
     dati_fase = costi_fase.get(fase, list(costi_fase.values())[0])
     totale_fase = sum(dati_fase.values())
-    df_fase = pd.DataFrame([{"Voce": k, "CHF/mese stimato": v} for k, v in dati_fase.items()])
+    df_fase = pd.DataFrame([{_voce: k, _chfm: v} for k, v in dati_fase.items()])
 
-    fig = px.bar(df_fase, x="CHF/mese stimato", y="Voce", orientation="h",
+    fig = px.bar(df_fase, x=_chfm, y=_voce, orientation="h",
                  color_discrete_sequence=["#c0392b"],
                  template="plotly_white", height=300, title=fase)
     fig.update_layout(margin=dict(t=30, b=0), yaxis_title="", yaxis=dict(categoryorder="total ascending"))
 
     delta_v = reddito_mensile - totale_fase
-    alert = (html.Div(f"✅ Reddito sufficiente. Margine: CHF {delta_v:,}/mese", className="budget-ok")
+    alert = (html.Div(t("vita_reddito_suff", lc, delta=f"{delta_v:,}"), className="budget-ok")
              if delta_v >= 0
-             else html.Div(f"❌ Deficit: CHF {abs(delta_v):,}/mese rispetto al reddito.", className="budget-err"))
+             else html.Div(t("vita_reddito_deficit", lc, abs_delta=f"{abs(delta_v):,}"), className="budget-err"))
 
     return html.Div([
         html.Br(),
@@ -282,7 +287,7 @@ def update_fasi(fase_idx, lc, fase_opts, reddito_mensile):
             dbc.Col([
                 dbc.Table.from_dataframe(df_fase, striped=True, hover=True, responsive=True, size="sm"),
                 html.Div([
-                    html.Div([html.Div("Totale stimato mensile", className="kpi-label"),
+                    html.Div([html.Div(t("vita_totale_mensile", lc), className="kpi-label"),
                               html.Div(f"CHF {totale_fase:,}", className="kpi-value")], className="kpi-box"),
                 ], style={"marginTop": "12px"}),
                 html.Div(alert, style={"marginTop": "12px"}),
@@ -297,13 +302,13 @@ def update_fasi(fase_idx, lc, fase_opts, reddito_mensile):
 # ─────────────────────────────────────────────
 
 def render_obiettivi(lc, reddito_mensile):
-    default_nomi = ["Casa", "Auto", "Pensione anticipata", "Università figli", "Viaggio", "Emergenza"]
+    default_nomi = t("vita_default_nomi", lc)
     default_importi = [100000, 30000, 500000, 80000, 15000, 50000]
     default_anni = [10, 3, 20, 15, 2, 5]
 
     return html.Div([
         html.H4(t("vita_obiettivi_titolo", lc), style={"marginBottom": "16px"}),
-        html.Label("Numero di obiettivi", style={"fontSize": "12px"}),
+        html.Label(t("vita_n_obiettivi", lc), style={"fontSize": "12px"}),
         dcc.Slider(id="vb-n-obj", min=1, max=6, step=1, value=2, marks={i: str(i) for i in range(1, 7)}),
         html.Div(id="vb-obj-inputs"),
         html.Hr(),
@@ -369,6 +374,11 @@ def update_obj_results(n_obj, nomi_vals, importi_vals, anni_vals, lc, reddito_me
     default_importi = defaults.get("importi", [50000] * 6)
     default_anni = defaults.get("anni", [5] * 6)
 
+    _nome_col = t("vita_obj_nome", lc)
+    _imp_col = t("vita_obj_importo", lc)
+    _anni_col = t("vita_obj_anni", lc)
+    _chfm_col = t("vita_chf_mese_nec", lc)
+
     obiettivi = []
     for i in range(n_obj):
         nome_v = (nomi_vals[i] if i < len(nomi_vals) and nomi_vals[i] else default_nomi[i])
@@ -378,48 +388,48 @@ def update_obj_results(n_obj, nomi_vals, importi_vals, anni_vals, lc, reddito_me
         anni_v = max(int(anni_v), 1)
         risp_mens = int(importo_v / (anni_v * 12))
         obiettivi.append({
-            "Nome": nome_v,
-            "Importo (CHF)": importo_v,
-            "Anni": anni_v,
-            "CHF/mese necessario": risp_mens,
+            _nome_col: nome_v,
+            _imp_col: importo_v,
+            _anni_col: anni_v,
+            _chfm_col: risp_mens,
         })
 
     if not obiettivi:
         return html.Div()
 
     df_obj = pd.DataFrame(obiettivi)
-    totale_risp = sum(o["CHF/mese necessario"] for o in obiettivi)
+    totale_risp = sum(o[_chfm_col] for o in obiettivi)
     capacita = reddito_mensile - totale_risp
 
     # Summary table
     table = dbc.Table.from_dataframe(df_obj, striped=True, hover=True, responsive=True, size="sm")
 
     metrics = dbc.Row([
-        dbc.Col(html.Div([html.Div("Risparmio totale necessario", className="kpi-label"),
+        dbc.Col(html.Div([html.Div(t("vita_totale_risp", lc), className="kpi-label"),
                           html.Div(f"CHF {totale_risp:,}/m", className="kpi-value")], className="kpi-box"), width=6),
-        dbc.Col(html.Div([html.Div("Capacità residua", className="kpi-label"),
+        dbc.Col(html.Div([html.Div(t("vita_capacita_residua", lc), className="kpi-label"),
                           html.Div(f"CHF {capacita:,}/m", className="kpi-value",
                                    style={"color": "#27ae60" if capacita >= 0 else "#e74c3c"})], className="kpi-box"), width=6),
     ], className="g-3 mb-3")
 
     if capacita >= 0:
-        alert = html.Div(f"✅ Obiettivi raggiungibili. Margine: CHF {capacita:,}/mese.", className="budget-ok")
+        alert = html.Div(t("vita_obj_raggiungibili", lc, capacita=f"{capacita:,}"), className="budget-ok")
     else:
-        alert = html.Div(f"❌ Servono CHF {totale_risp:,}/mese. Deficit: CHF {abs(capacita):,}/mese.", className="budget-err")
+        alert = html.Div(t("vita_obj_insufficiente", lc, totale=f"{totale_risp:,}", deficit=f"{abs(capacita):,}"), className="budget-err")
 
     # Gantt timeline
     df_gantt = pd.DataFrame([{
-        "Obiettivo": o["Nome"],
+        "Obiettivo": o[_nome_col],
         "Inizio": 0,
-        "Fine": o["Anni"],
-        "Importo": o["Importo (CHF)"],
-        "CHF/mese": o["CHF/mese necessario"],
+        "Fine": o[_anni_col],
+        "Importo": o[_imp_col],
+        "CHF/mese": o[_chfm_col],
     } for o in obiettivi])
 
     # Use horizontal bar as Gantt
     fig_gantt = go.Figure()
     colors = px.colors.sequential.Reds
-    max_importo = max(o["Importo (CHF)"] for o in obiettivi) or 1
+    max_importo = max(o[_imp_col] for o in obiettivi) or 1
     for i, row in df_gantt.iterrows():
         color_idx = min(int(row["Importo"] / max_importo * (len(colors) - 1)), len(colors) - 1)
         fig_gantt.add_trace(go.Bar(
@@ -428,15 +438,15 @@ def update_obj_results(n_obj, nomi_vals, importi_vals, anni_vals, lc, reddito_me
             orientation="h",
             base=row["Inizio"],
             marker_color=colors[color_idx],
-            hovertemplate=f"{row['Obiettivo']}: CHF {row['Importo']:,} — {row['Fine']} anni<extra></extra>",
+            hovertemplate=f"{row['Obiettivo']}: CHF {row['Importo']:,} — {row['Fine']} {t('adv_anni', lc)}<extra></extra>",
             showlegend=False,
         ))
     fig_gantt.update_layout(
         template="plotly_white",
         height=max(180, len(obiettivi) * 50),
-        xaxis_title="Anni da oggi",
+        xaxis_title=t("vita_anni_da_oggi", lc),
         yaxis_title="",
-        title="Timeline obiettivi finanziari",
+        title=t("vita_timeline", lc),
         margin=dict(t=40, b=0),
         barmode="stack",
     )
@@ -445,15 +455,16 @@ def update_obj_results(n_obj, nomi_vals, importi_vals, anni_vals, lc, reddito_me
     rows_acc = []
     for o in obiettivi:
         acc = 0
-        for mese in range(o["Anni"] * 12 + 1):
-            acc += o["CHF/mese necessario"]
+        for mese in range(o[_anni_col] * 12 + 1):
+            acc += o[_chfm_col]
             if mese % 12 == 0:
-                rows_acc.append({"Obiettivo": o["Nome"], "Anno": mese // 12, "CHF accumulati": acc})
+                rows_acc.append({"Obiettivo": o[_nome_col], "Anno": mese // 12, "CHF": acc})
     if rows_acc:
         df_acc = pd.DataFrame(rows_acc)
-        fig_acc = px.line(df_acc, x="Anno", y="CHF accumulati", color="Obiettivo",
+        fig_acc = px.line(df_acc, x="Anno", y="CHF", color="Obiettivo",
                           color_discrete_sequence=px.colors.qualitative.Set1,
-                          template="plotly_white", height=280, title="📈 Proiezione accumulo per obiettivo")
+                          template="plotly_white", height=280,
+                          title=f"📈 {t('vita_proiez_acc', lc)}")
         fig_acc.update_layout(margin=dict(t=40, b=0), yaxis=dict(tickformat=",.0f"))
         acc_chart = dcc.Graph(figure=fig_acc, config={"displayModeBar": False})
     else:

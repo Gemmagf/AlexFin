@@ -56,26 +56,42 @@ def kpi_box(label, value, delta=None, delta_good=True):
     )
 
 
-def rec_card(r):
-    prio = r["priorita"]
-    if "Alta" in prio:
+def rec_card(r, lc="it"):
+    prio = r["priorita"]  # internal code: "Alta" / "Raccomandata" / "Opzionale"
+    if prio == "Alta":
         card_cls, badge_cls = "alexfin-card card-alta", "badge-alta"
-    elif "Raccomandata" in prio:
+        badge_lbl = t("rac_prio_alta", lc)
+    elif prio == "Raccomandata":
         card_cls, badge_cls = "alexfin-card card-racc", "badge-racc"
+        badge_lbl = t("rac_prio_racc", lc)
     else:
         card_cls, badge_cls = "alexfin-card card-opz", "badge-opz"
+        badge_lbl = t("rac_prio_opz", lc)
     return html.Div(
         [
             html.Div(
                 [
-                    html.Span(f"{r['icona']} {r['prodotto']}", style={"fontWeight": "600", "fontSize": "1rem"}),
-                    html.Span(prio, className=badge_cls),
+                    html.Div(
+                        f"{r['icona']} {r['prodotto']}",
+                        style={"fontWeight": "700", "fontSize": "0.95rem",
+                               "color": "#1e2235", "flex": "1", "minWidth": "0",
+                               "overflow": "hidden", "textOverflow": "ellipsis",
+                               "whiteSpace": "nowrap"},
+                    ),
+                    html.Span(badge_lbl, className=badge_cls,
+                              style={"flexShrink": "0", "marginLeft": "8px",
+                                     "fontSize": "0.7rem", "whiteSpace": "nowrap"}),
                 ],
-                style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "6px"},
+                style={"display": "flex", "justifyContent": "space-between",
+                       "alignItems": "center", "marginBottom": "8px"},
             ),
-            html.Span(r["motivo"], style={"color": "#555", "fontSize": "0.9rem"}),
+            html.P(r["motivo"],
+                   style={"color": "#555", "fontSize": "0.85rem",
+                          "lineHeight": "1.5", "margin": "0",
+                          "wordBreak": "break-word"}),
         ],
         className=card_cls,
+        style={"minHeight": "80px"},
     )
 
 
@@ -120,7 +136,7 @@ def render_header(store):
     reddito = store.get("reddito_mensile", 5500)
     header = html.Div([
         html.H1(f"🧑‍💼 {t('adv_title', lc)}", className="page-title"),
-        html.P(f"{nome} · {eta} anni · {sit} · {canton} · CHF {reddito:,}/m", className="page-subtitle"),
+        html.P(f"{nome} · {eta} {t('adv_anni', lc)} · {sit} · {canton} · CHF {reddito:,}/m", className="page-subtitle"),
         html.Hr(),
     ])
     tabs = dbc.Tabs(
@@ -188,24 +204,26 @@ def render_raccomandazioni(store, lc, eta, reddito_mensile, reddito_annuo, situa
         ), width=True),
     ], className="g-3 mb-4")
 
-    raccomandazioni = calcola_raccomandazioni(store)
+    raccomandazioni = calcola_raccomandazioni(store, lc)
 
     # Bar chart AVS/LPP/Lacuna
+    _lac_lbl = t("rac_lacuna_warning", lc)
     df_lac = pd.DataFrame({
-        "Fonte": ["1° AVS", "2° LPP", t("rac_lacuna_warning", lc)],
+        "Fonte": ["1° AVS", "2° LPP", _lac_lbl],
         "CHF": [int(avs_stimata), int(lpp_stimata), int(lacuna)],
     })
     fig_lac = px.bar(
         df_lac, x="Fonte", y="CHF",
         color="Fonte",
-        color_discrete_map={"1° AVS": "#2980b9", "2° LPP": "#27ae60", t("rac_lacuna_warning", lc): "#e74c3c"},
+        color_discrete_map={"1° AVS": "#2980b9", "2° LPP": "#27ae60", _lac_lbl: "#e74c3c"},
+        labels={"Fonte": t("rac_fonte", lc), "CHF": "CHF"},
         template="plotly_white",
         height=280,
     )
     # Objective line at 70% of income
     fig_lac.add_hline(y=reddito_annuo * 0.7, line_dash="dash", line_color="#f39c12",
-                      annotation_text="Obiettivo 70%", annotation_position="top right")
-    fig_lac.update_layout(showlegend=False, margin=dict(t=20, b=0), xaxis_title="", yaxis_title="CHF/anno")
+                      annotation_text=t("lacuna_obj", lc), annotation_position="top right")
+    fig_lac.update_layout(showlegend=False, margin=dict(t=20, b=0), xaxis_title="", yaxis_title=t("adv_chf_anno", lc))
 
     lacuna_alert = (
         html.Div(f"⚠️ {t('rac_lacuna_warning', lc)}: CHF {lacuna:,.0f}/anno",
@@ -214,7 +232,7 @@ def render_raccomandazioni(store, lc, eta, reddito_mensile, reddito_annuo, situa
         else html.Div(t("rac_lacuna_ok", lc), className="budget-ok")
     )
 
-    rec_cards = [rec_card(r) for r in raccomandazioni]
+    rec_cards = [rec_card(r, lc) for r in raccomandazioni]
 
     return html.Div([
         html.H4(t("rac_header", lc), style={"marginBottom": "16px"}),
@@ -303,21 +321,23 @@ def update_simulatore(risparmi_att, contrib_mens, rend_sim, eta_pens,
             p.append(max(p[-1] * (1 + rend / 100) + c, 0))
         return p
 
+    _eta_lbl = t("kpi_eta", lc)
+    _scen_lbl = t("sim_scenario_lbl", lc)
     pat_base = sim_pat(risparmi_att, contrib_base, rend_sim, anni_s)
-    rows_sim = [{"Età": eta + i, "CHF": p, "Scenario": "Base"} for i, p in enumerate(pat_base)]
+    rows_sim = [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: "Base"} for i, p in enumerate(pat_base)]
 
     if shock_vals:
-        rows_sim += [{"Età": eta + i, "CHF": p, "Scenario": t("sim_shock", lc)}
+        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_shock", lc)}
                      for i, p in enumerate(sim_pat(risparmi_att, contrib_base, rend_sim - 2, anni_s))]
     if part_vals:
-        rows_sim += [{"Età": eta + i, "CHF": p, "Scenario": t("sim_part", lc)}
+        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_part", lc)}
                      for i, p in enumerate(sim_pat(risparmi_att, contrib_base * 0.5, rend_sim, anni_s))]
     if spesa_vals:
-        rows_sim += [{"Età": eta + i, "CHF": p, "Scenario": t("sim_spesa", lc)}
+        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_spesa", lc)}
                      for i, p in enumerate(sim_pat(risparmi_att, contrib_base, rend_sim, anni_s, shock_anno=5))]
 
     df_sim = pd.DataFrame(rows_sim)
-    fig = px.line(df_sim, x="Età", y="CHF", color="Scenario",
+    fig = px.line(df_sim, x=_eta_lbl, y="CHF", color=_scen_lbl,
                   color_discrete_sequence=["#c0392b", "#3498db", "#27ae60", "#f39c12"],
                   template="plotly_white", height=320)
     fig.add_vline(x=eta_pens, line_dash="dash", line_color="#555")
@@ -354,11 +374,11 @@ def kpi_box(label, value, delta=None, delta_good=True):
 # TAB 3 — NOTE
 # ─────────────────────────────────────────────
 
-TEMI_LISTA = [
-    ("❤️", "Assicurazione Vita"), ("🦽", "Invalidità"), ("🤒", "Perdita di Guadagno"),
-    ("🩹", "Infortuni"), ("🛡️", "RC Privata"), ("💊", "Krankenkasse"),
-    ("🏥", "Complementare Ospedaliera"), ("🏦", "3° Pilastro"), ("🏢", "Revisione LPP"),
-    ("🏡", "Budget familiare"), ("🎯", "Obiettivi di vita"), ("📈", "Simulatore"),
+TEMI_LISTA_KEYS = [
+    ("❤️", "temi_vita"), ("🦽", "temi_invalidita"), ("🤒", "temi_perdita"),
+    ("🩹", "temi_infortuni"), ("🛡️", "temi_rc"), ("💊", "temi_kk"),
+    ("🏥", "temi_spital"), ("🏦", "temi_3a"), ("🏢", "temi_lpp"),
+    ("🏡", "temi_budget"), ("🎯", "temi_obiettivi"), ("📈", "temi_sim"),
 ]
 
 
@@ -366,11 +386,11 @@ def render_note(lc, nome, eta, situazione, store):
     temi_checks = [
         dcc.Checklist(
             id=f"tema-{i}",
-            options=[{"label": f" {ico} {nome_t}", "value": nome_t}],
+            options=[{"label": f" {ico} {t(key, lc)}", "value": t(key, lc)}],
             value=[],
             style={"fontSize": "13px", "marginBottom": "4px"},
         )
-        for i, (ico, nome_t) in enumerate(TEMI_LISTA)
+        for i, (ico, key) in enumerate(TEMI_LISTA_KEYS)
     ]
     urgenza_opts = t("note_urgenza_opt", lc)
 
@@ -392,7 +412,7 @@ def render_note(lc, nome, eta, situazione, store):
                 html.H6(f"📄 {t('note_riepilogo', lc)}"),
                 html.Div(id="note-riepilogo-box"),
                 dbc.Button(
-                    "📥 Scarica PDF riunione",
+                    t("pdf_btn", lc),
                     id="pdf-btn",
                     color="danger",
                     outline=True,
@@ -407,16 +427,16 @@ def render_note(lc, nome, eta, situazione, store):
                         dbc.Row([
                             dbc.Col([html.Label("SMTP Server", style={"fontSize": "12px"}),
                                      dcc.Input(id="smtp-server", type="text", value="smtp.gmail.com", className="form-control")], width=6),
-                            dbc.Col([html.Label("Porta", style={"fontSize": "12px"}),
+                            dbc.Col([html.Label(t("smtp_porta", lc), style={"fontSize": "12px"}),
                                      dcc.Input(id="smtp-port", type="number", value=587, className="form-control")], width=3),
                         ], className="mb-2"),
                         dbc.Row([
-                            dbc.Col([html.Label("Email mittente", style={"fontSize": "12px"}),
+                            dbc.Col([html.Label(t("smtp_mittente", lc), style={"fontSize": "12px"}),
                                      dcc.Input(id="smtp-user", type="email", placeholder="tuoindirizzo@gmail.com", className="form-control")], width=6),
                             dbc.Col([html.Label("Password", style={"fontSize": "12px"}),
                                      dcc.Input(id="smtp-pass", type="password", className="form-control")], width=6),
                         ]),
-                    ], title="⚙️ Configurazione SMTP"),
+                    ], title=f"⚙️ {t('email_header', lc)}"),
                 ], start_collapsed=True, style={"marginBottom": "12px"}),
                 dcc.Input(id="email-dest", type="email", placeholder=t("email_ph", lc), className="form-control", style={"marginBottom": "8px"}),
                 dcc.Input(id="email-oggetto", type="text", value=t("email_oggetto_default", lc), className="form-control", style={"marginBottom": "8px"}),
@@ -443,7 +463,7 @@ def render_note(lc, nome, eta, situazione, store):
     Input("note-eta-store", "data"),
     Input("note-sit-store", "data"),
     Input("note-store-data", "data"),
-    *[Input(f"tema-{i}", "value") for i in range(len(TEMI_LISTA))],
+    *[Input(f"tema-{i}", "value") for i in range(len(TEMI_LISTA_KEYS))],
     prevent_initial_call=False,
 )
 def update_riepilogo(note_libere, prossimi, urgenza_idx, lc, nome, eta, situazione, store, *temi_vals):
@@ -464,35 +484,34 @@ def update_riepilogo(note_libere, prossimi, urgenza_idx, lc, nome, eta, situazio
         if vals:
             temi_disc.extend(vals)
 
-    rac_alta = [r for r in calcola_raccomandazioni(profilo) if "Alta" in r["priorita"]]
+    rac_alta = [r for r in calcola_raccomandazioni(profilo, lc or "it") if r["priorita"] == "Alta"]
 
     oggi = date.today().strftime("%d/%m/%Y")
     figli_info = f"Sì ({store.get('n_figli', 0)})" if store.get("figli") else "No"
     ipot_info = "Sì" if store.get("ipoteca") else "No"
 
     txt = f"""{'='*50}
-RIEPILOGO COLLOQUIO — {nome}
-Data: {oggi}
+{t('rie_titolo', lc)} — {nome}
+{oggi}
 {'='*50}
 
-PROFILO
-Età: {eta} | {situazione} | Canton {canton}
-Reddito mensile: CHF {reddito_mensile:,}
-Figli: {figli_info} | Ipoteca: {ipot_info}
+{t('rie_profilo', lc)}
+{t('crm_eta', lc)}: {eta} | {situazione} | Canton {canton}
+{t('crm_reddito', lc)}: CHF {reddito_mensile:,}
 
-PRIORITÀ ALTA
-{chr(10).join(['• '+r['prodotto']+' — '+r['motivo'] for r in rac_alta]) if rac_alta else '• Nessuna urgenza immediata'}
+{t('rie_prio', lc)}
+{chr(10).join(['• '+r['prodotto']+' — '+r['motivo'] for r in rac_alta]) if rac_alta else '• —'}
 
-TEMI DISCUSSI
+{t('rie_temi', lc)}
 {chr(10).join(['• '+tn for tn in temi_disc]) if temi_disc else '• —'}
 
-PROSSIMI PASSI
+{t('rie_passi', lc)}
 {prossimi or '—'}
 
-NOTE
+{t('rie_note', lc)}
 {note_libere or '—'}
 
-URGENZA: {urgenza}
+{t('rie_urgenza', lc)}: {urgenza}
 {'='*50}
 AlexFin · SVAG · {oggi}
 """
@@ -538,40 +557,41 @@ def download_pdf(n_clicks, store):
 )
 def send_email(n, dest, oggetto, smtp_server, smtp_port, smtp_user, smtp_pass,
                note_libere, prossimi, store):
-    if not dest:
-        return html.Div("Inserisci l'email del destinatario.", className="budget-warn")
-    if not smtp_user or not smtp_pass:
-        return html.Div("⚠️ Configura le credenziali SMTP.", className="budget-warn")
     store = store or {}
+    lc = store.get("lc", "it")
+    if not dest:
+        return html.Div(t("email_err_dest", lc), className="budget-warn")
+    if not smtp_user or not smtp_pass:
+        return html.Div(t("email_err_smtp_cfg", lc), className="budget-warn")
     nome = store.get("nome", "Cliente") or "Cliente"
     eta = store.get("eta", 38)
     situazione = store.get("situazione", "Dipendente")
     canton = store.get("canton", "Ticino")
     reddito_mensile = store.get("reddito_mensile", 5500)
-    rac_alta = [r for r in calcola_raccomandazioni(store) if "Alta" in r["priorita"]]
+    rac_alta = [r for r in calcola_raccomandazioni(store, lc) if r["priorita"] == "Alta"]
     oggi = date.today().strftime("%d/%m/%Y")
     body_html = f"""
 <html><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:auto">
 <div style="background:#c0392b;padding:20px;border-radius:8px 8px 0 0">
-  <h2 style="color:white;margin:0">🇨🇭 AlexFin — Analisi Patrimoniale</h2>
-  <p style="color:#fcc;margin:4px 0">Riepilogo colloquio per {nome}</p>
+  <h2 style="color:white;margin:0">AlexFin — {t('rie_titolo', lc)}</h2>
+  <p style="color:#fcc;margin:4px 0">{nome}</p>
 </div>
 <div style="background:#f9f9f9;padding:24px;border:1px solid #eee;border-radius:0 0 8px 8px">
-  <h3>👤 Profilo</h3>
+  <h3>{t('rie_profilo', lc)}</h3>
   <ul>
-    <li>Età: <b>{eta}</b> anni | {situazione} | Canton {canton}</li>
-    <li>Reddito mensile: <b>CHF {reddito_mensile:,}</b></li>
+    <li>{t('crm_eta', lc)}: <b>{eta}</b> {t('adv_anni', lc)} | {situazione} | Canton {canton}</li>
+    <li>{t('crm_reddito', lc)}: <b>CHF {reddito_mensile:,}</b></li>
   </ul>
-  <h3>🔴 Priorità Alta</h3>
-  <ul>{"".join(["<li><b>"+r["prodotto"]+"</b> — "+r["motivo"]+"</li>" for r in rac_alta]) if rac_alta else "<li>Nessuna urgenza immediata</li>"}</ul>
-  <h3>📌 Prossimi passi</h3>
+  <h3>{t('rie_prio', lc)}</h3>
+  <ul>{"".join(["<li><b>"+r["prodotto"]+"</b> — "+r["motivo"]+"</li>" for r in rac_alta]) if rac_alta else "<li>—</li>"}</ul>
+  <h3>{t('rie_passi', lc)}</h3>
   <p>{(prossimi or "—").replace(chr(10),"<br>")}</p>
   <hr>
-  <p style="color:#888;font-size:12px">Generato da AlexFin Advisor Tool · SVAG · {oggi}</p>
+  <p style="color:#888;font-size:12px">AlexFin Advisor Tool · SVAG · {oggi}</p>
 </div></body></html>"""
     try:
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = oggetto or "Analisi patrimoniale – AlexFin"
+        msg["Subject"] = oggetto or f"AlexFin — {t('rie_titolo', lc)}"
         msg["From"] = smtp_user
         msg["To"] = dest
         msg.attach(MIMEText(body_html, "html"))
@@ -579,9 +599,9 @@ def send_email(n, dest, oggetto, smtp_server, smtp_port, smtp_user, smtp_pass,
             s.starttls()
             s.login(smtp_user, smtp_pass)
             s.sendmail(smtp_user, dest, msg.as_string())
-        return html.Div(f"✅ Email inviata a {dest}", className="budget-ok")
+        return html.Div(f"{t('email_ok', lc)} {dest}", className="budget-ok")
     except Exception as e:
-        return html.Div(f"❌ Errore: {e}", className="budget-err")
+        return html.Div(f"{t('email_err', lc)}: {e}", className="budget-err")
 
 
 # ─────────────────────────────────────────────
@@ -610,7 +630,7 @@ def render_crm(lc, store):
                 html.Div(id="crm-save-feedback"),
                 html.Hr(),
                 html.H6(t("adv_note_sessione", lc)),
-                dcc.Textarea(placeholder="Appunti interni...", style={"width": "100%", "height": "120px",
+                dcc.Textarea(placeholder=t("crm_appunti", lc), style={"width": "100%", "height": "120px",
                              "borderRadius": "8px", "border": "1px solid #ddd", "padding": "10px", "fontSize": "13px"}),
             ], width=4),
         ]),
@@ -649,9 +669,9 @@ def update_crm_list(n_clicks, store, lc):
                                style={"cursor": "pointer", "fontWeight": "600"}),
                 dbc.CardBody([
                     dbc.Row([
-                        dbc.Col(html.Div([html.Div("Età", className="kpi-label"), html.Div(str(c.get("eta", "—")), className="kpi-value")], className="kpi-box"), width=4),
-                        dbc.Col(html.Div([html.Div("Reddito/m", className="kpi-label"), html.Div(f"CHF {c.get('reddito_mensile', 0):,}", className="kpi-value")], className="kpi-box"), width=4),
-                        dbc.Col(html.Div([html.Div("Situazione", className="kpi-label"), html.Div(c.get("situazione", "—"), className="kpi-value", style={"fontSize": "1rem"})], className="kpi-box"), width=4),
+                        dbc.Col(html.Div([html.Div(t("crm_eta", lc), className="kpi-label"), html.Div(str(c.get("eta", "—")), className="kpi-value")], className="kpi-box"), width=4),
+                        dbc.Col(html.Div([html.Div(t("crm_reddito", lc), className="kpi-label"), html.Div(f"CHF {c.get('reddito_mensile', 0):,}", className="kpi-value")], className="kpi-box"), width=4),
+                        dbc.Col(html.Div([html.Div(t("crm_situazione", lc), className="kpi-label"), html.Div(c.get("situazione", "—"), className="kpi-value", style={"fontSize": "1rem"})], className="kpi-box"), width=4),
                     ], className="g-2"),
                 ], style={"padding": "12px"}),
             ], style={"marginBottom": "10px", "border": "1px solid #eef0f4"})
