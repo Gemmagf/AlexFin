@@ -1,7 +1,65 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-20 (sessió 5)  
+> Última actualització: 2026-04-20 (sessió 6)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 6 (2026-04-20)
+
+### i18n complet — totes les pàgines 100% traduïdes
+**Problema:** Després de les correccions anteriors, quedaven centenars de strings hardcoded en italià a totes les pàgines: etiquetes CRM, temes de la checklist, boto PDF, gràfics, formularis SMTP, taules de pressupost, categories de prospecting, missatges d'alerta, etc.
+
+**Solució sistemàtica — `i18n.py` _EXTRA (+60 claus noves per IT/DE/FR/EN/CA):**
+- `pdf_btn`, `adv_anni`, `lacuna_obj` — botó PDF i subtítol advisor
+- `rie_titolo/profilo/prio/temi/passi/note/urgenza` — capçaleres resum colloqui
+- `crm_eta/reddito/situazione/appunti` — etiquetes CRM
+- `smtp_porta/smtp_mittente`, `email_err_dest/smtp_cfg` — formularis SMTP
+- `rac_fonte`, `adv_chf_anno`, `sim_scenario_lbl` — eixos gràfics Advisor
+- `vita_sem_ok/warn/err` — semàfor budget mensual
+- `vita_default_nomi` — noms objectius per defecte (llista localitzada)
+- `vita_reddito_suff/deficit`, `vita_obj_raggiungibili/insufficiente` — alertes
+- `vita_chf_mese_stimato/nec`, `vita_categoria`, `vita_anni_da_oggi` — taules i gràfics
+- `vita_proiez_acc`, `vita_capacita_residua`, `vita_totale_risp` (ja existia)
+- `prev_scen_ora/tardi/fis` — escenaris simulador 3r pilar
+- `kk_ottimale`, `kk_risp_ok` — alertes Krankenkasse
+- `prev_obiettivo_pct` — anotació línia objectiu gràfic de pensions
+- `prosp_filter_cat`, `prosp_all_cat`, `prosp_no_results`, `prosp_spot_come_entrare`
+
+**`dash_pages/advisor.py`:**
+- `TEMI_LISTA` → `TEMI_LISTA_KEYS` amb claus i18n; labels traduïdes, value = text traduït
+- CRM: labels Età/Reddito/Situazione → `t("crm_eta/reddito/situazione", lc)`
+- Placeholder textarea CRM → `t("crm_appunti", lc)`
+- Botó PDF → `t("pdf_btn", lc)`
+- Subtítol → `{eta} {t('adv_anni', lc)}`
+- Gràfic lacuna: eix Y → `t("adv_chf_anno", lc)`, labels Fonte → `t("rac_fonte", lc)`
+- Simulador: columnes DataFrame → `_eta_lbl`, `_scen_lbl` dinàmics
+- Formulari SMTP: Porta/Email mittente → `t("smtp_porta/mittente", lc)`
+- Resum colloqui (`update_riepilogo`): tots els títols de secció → `t("rie_*", lc)`
+- Email HTML (`send_email`): `lc` extret del store, tot el body traduït
+
+**`dash_pages/vida_budget.py`:**
+- Semàfor (ok/warn/err) → `t("vita_sem_*", lc, saldo=..., pct=...)` 
+- Taula 50/30/20: columnes `_cat`, `_att`, `_tar` dinàmiques
+- Fasi: noms categories → `t("vita_affitto/cibo/tras/...", lc)` com a claus dict
+- Objectius: `default_nomi = t("vita_default_nomi", lc)`, tots els headers de DataFrame
+- KPIs `vita_totale_risp`, `vita_capacita_residua` via `t()`
+- Alertes objectius → `t("vita_obj_raggiungibili/insufficiente", lc, ...)`
+- Gràfic gantt: `xaxis_title=t("vita_anni_da_oggi", lc)`, `title=t("vita_timeline", lc)`
+- Gràfic acumulació → `t("vita_proiez_acc", lc)`, eix Y unificat
+
+**`dash_pages/prospecting.py`:**
+- `render_spots(lc)` ara accepta lc; afegit `prosp-spots-lc-store`
+- Categoria dropdown → `t("prosp_filter_cat/all_cat", lc)`
+- "Nessun risultato" → `t("prosp_no_results", lc)`
+- SMTP labels Porta/Email mittente → `t("smtp_porta/mittente", lc)`
+
+**`dash_pages/assegurances.py`:**
+- Alert KK → `t("kk_risp_ok/kk_ottimale", lc)`
+- Escenaris 3r pilar → `t("prev_scen_ora/tardi/fis", lc)` (variables per `color_discrete_map`)
+- Anotació gràfic → `t("prev_obiettivo_pct", lc, pct=pct_obiettivo)`
+
+**Fitxers canviats:** `i18n.py`, `dash_pages/advisor.py`, `dash_pages/vida_budget.py`, `dash_pages/prospecting.py`, `dash_pages/assegurances.py`
 
 ---
 
