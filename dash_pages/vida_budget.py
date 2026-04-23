@@ -250,20 +250,80 @@ def save_budget(sal1, sal2, altri, aff, cibo, tras, salute, intrat, asilo, altro
 
 
 # ─────────────────────────────────────────────
-# TAB 2 — FASI DI VITA
+# TAB 2 — FASI DI VITA  (redesigned: realistic 2026 costs, auto-detect, priorities)
 # ─────────────────────────────────────────────
+
+# Costi tipici mensili CH 2026 per fase — franchi svizzeri, media nazionale
+# Fonte: UST, comparis.ch, Compendio svizzero delle assicurazioni sociali 2026
+# N.B.: valori "netti" (senza risparmio/saldo — quello si calcola dal delta reddito)
+_COSTI_FASE_BASE = [
+    # 0 — Giovane senza figli (single 22-32 anni)
+    {"affitto": 1700, "cibo": 650, "trasporto": 380, "kk": 499,
+     "telefonia": 80, "svago": 400, "abbigliamento": 200, "3a": 500},
+    # 1 — Coppia senza figli (30-40 anni, 2 redditi)
+    {"affitto": 2400, "cibo": 1100, "trasporto": 700, "kk": 998,
+     "telefonia": 120, "svago": 600, "abbigliamento": 350, "3a": 1200},
+    # 2 — Famiglia bambini piccoli (35-45 anni, 2 figli <10)
+    {"affitto": 2800, "cibo": 1400, "trasporto": 750, "kk": 1240,
+     "asilo_nido": 2200, "telefonia": 130, "svago": 500,
+     "abbigliamento": 400, "3a": 800},
+    # 3 — Famiglia figli adolescenti (45-55 anni, 2 figli 12-18)
+    {"affitto": 2800, "cibo": 1600, "trasporto": 900, "kk": 1500,
+     "telefonia": 200, "svago": 800, "abbigliamento": 500, "3a": 1200},
+    # 4 — Figli all'università (50-58 anni, 2 figli fuori casa)
+    {"affitto": 2600, "cibo": 1400, "trasporto": 800, "kk": 1100,
+     "contributo_figli": 2000, "telefonia": 150, "svago": 700, "3a": 1200},
+    # 5 — Nido vuoto 50+ (55-63 anni, senza figli a carico)
+    {"affitto": 2100, "cibo": 1200, "trasporto": 600, "kk": 1400,
+     "telefonia": 100, "svago": 1000, "3a": 1450},
+    # 6 — Pre-pensione (62-65 anni)
+    {"affitto": 1900, "cibo": 1100, "trasporto": 500, "kk": 1600,
+     "telefonia": 100, "svago": 1200, "risparmio_extra": 1500},
+]
+
+# Etichette i18n per le voci comuni
+_VOCE_KEY = {
+    "affitto": "vita_affitto", "cibo": "vita_cibo", "trasporto": "vita_trasporto",
+    "svago": "vita_intrattenimento", "abbigliamento": "vita_altro",
+    "asilo_nido": "vita_asilo",
+}
+
+
+def _auto_fase(eta, figli):
+    """Suggerisce la fase di vita dal profilo del cliente."""
+    if eta >= 62:
+        return 6
+    if eta >= 55:
+        return 5 if not figli else 4
+    if eta >= 45:
+        return 3 if figli else 5
+    if eta >= 35:
+        return 2 if figli else 1
+    return 0
+
 
 def render_fasi(lc, eta, figli, reddito_mensile):
     fase_opts = t("vita_fase_opts", lc)
-    default_idx = 2 if figli else 0
+    auto_idx  = _auto_fase(eta, figli)
     return html.Div([
-        html.H4(t("vita_tab2", lc), style={"marginBottom": "16px"}),
+        html.H4(t("vita_tab2", lc), style={"marginBottom": "8px"}),
+        html.Div([
+            html.Span(t("vita_fase_badge", lc) + f": ", style={"fontSize": "12px", "color": "#555"}),
+            html.Span(fase_opts[auto_idx],
+                      style={"fontSize": "12px", "fontWeight": "700", "color": "#c0392b"}),
+            html.Span(f"  ·  {t('vita_fase_pers', lc)} →",
+                      style={"fontSize": "11px", "color": "#999", "marginLeft": "8px"}),
+        ], style={"marginBottom": "12px"}),
         html.Label(t("vita_fase_label", lc), style={"fontSize": "12px"}),
         dcc.Slider(
             id="vb-fase",
             min=0, max=len(fase_opts) - 1, step=1,
-            value=default_idx,
-            marks={i: {"label": fase_opts[i], "style": {"fontSize": "11px", "whiteSpace": "nowrap"}} for i in range(len(fase_opts))},
+            value=auto_idx,
+            marks={i: {"label": fase_opts[i],
+                       "style": {"fontSize": "10px", "whiteSpace": "nowrap",
+                                 "fontWeight": "700" if i == auto_idx else "400",
+                                 "color": "#c0392b" if i == auto_idx else "#555"}}
+                   for i in range(len(fase_opts))},
             tooltip={"always_visible": False},
         ),
         html.Div(id="vb-fasi-content"),
@@ -285,47 +345,85 @@ def update_fasi(fase_idx, lc, fase_opts, reddito_mensile):
     lc = lc or "it"
     reddito_mensile = reddito_mensile or 5500
     fase_opts = fase_opts or t("vita_fase_opts", lc)
-    fase_idx = fase_idx or 0
-    fase = fase_opts[fase_idx]
+    fase_idx = fase_idx if fase_idx is not None else 0
+    fase_nome = fase_opts[fase_idx]
 
-    _voce = t("vita_costi_tipici", lc)
-    _chfm = t("vita_chf_mese_stimato", lc)
-    costi_fase = {
-        fase_opts[0]: {t("vita_affitto", lc): 1400, t("vita_trasporto", lc): 300, t("vita_cibo", lc): 600, t("vita_intrattenimento", lc): 500, "KK": 470, "3a": 600, t("vita_saldo", lc): 500},
-        fase_opts[1]: {t("vita_affitto", lc): 1900, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1000, t("vita_intrattenimento", lc): 700, "KK": 940, "3a": 1200, t("vita_saldo", lc): 800},
-        fase_opts[2]: {t("vita_affitto", lc): 2400, t("vita_trasporto", lc): 600, t("vita_cibo", lc): 1300, t("vita_asilo", lc): 1200, "KK": 1500, "3a": 600, t("vita_saldo", lc): 400},
-        fase_opts[3]: {t("vita_affitto", lc): 2500, t("vita_trasporto", lc): 700, t("vita_cibo", lc): 1500, t("vita_intrattenimento", lc): 800, "KK": 1600, "3a": 600, t("vita_saldo", lc): 600},
-        fase_opts[4]: {t("vita_affitto", lc): 2200, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1200, "Univ.": 2000, "KK": 1400, "3a": 600, t("vita_saldo", lc): 300},
-        fase_opts[5]: {t("vita_affitto", lc): 2000, t("vita_trasporto", lc): 500, t("vita_cibo", lc): 1100, t("vita_intrattenimento", lc): 800, "KK": 1800, "3a": 604, t("vita_saldo", lc): 1200},
-        fase_opts[6]: {t("vita_affitto", lc): 1800, t("vita_trasporto", lc): 400, t("vita_cibo", lc): 1000, t("vita_intrattenimento", lc): 700, "KK": 2000, "3a": 604, t("vita_saldo", lc): 1500},
-    }
-    dati_fase = costi_fase.get(fase, list(costi_fase.values())[0])
-    totale_fase = sum(dati_fase.values())
-    df_fase = pd.DataFrame([{_voce: k, _chfm: v} for k, v in dati_fase.items()])
+    # Build translated label → CHF dict for this phase
+    raw = _COSTI_FASE_BASE[fase_idx]
+    _voce_lbl = t("vita_costi_tipici", lc)
+    _chfm_lbl = t("vita_chf_mese_stimato", lc)
+    dati = {}
+    for k, v in raw.items():
+        if k in _VOCE_KEY:
+            lbl = t(_VOCE_KEY[k], lc)
+        elif k == "kk":
+            lbl = "💊 KK / LAMal"
+        elif k == "3a":
+            lbl = "🏦 3° Pilastro"
+        elif k == "contributo_figli":
+            lbl = "🎓 Supporto figli (univ.)"
+        elif k == "risparmio_extra":
+            lbl = "💰 Risparmio pre-pensione"
+        else:
+            lbl = k.replace("_", " ").capitalize()
+        dati[lbl] = v
 
-    fig = px.bar(df_fase, x=_chfm, y=_voce, orientation="h",
-                 color_discrete_sequence=["#c0392b"],
-                 template="plotly_white", height=300, title=fase)
-    fig.update_layout(margin=dict(t=30, b=0), yaxis_title="", yaxis=dict(categoryorder="total ascending"))
+    totale = sum(dati.values())
+    delta  = reddito_mensile - totale
+    n_pers = 2 if fase_idx > 0 else 1   # single vs famiglia
+    costo_pp = totale // n_pers
 
-    delta_v = reddito_mensile - totale_fase
-    alert = (html.Div(t("vita_reddito_suff", lc, delta=f"{delta_v:,}"), className="budget-ok")
-             if delta_v >= 0
-             else html.Div(t("vita_reddito_deficit", lc, abs_delta=f"{abs(delta_v):,}"), className="budget-err"))
+    df_fase = pd.DataFrame([{_voce_lbl: k, _chfm_lbl: v} for k, v in dati.items()])
+    fig = px.bar(
+        df_fase, x=_chfm_lbl, y=_voce_lbl, orientation="h",
+        color_discrete_sequence=["#c0392b"],
+        template="plotly_white", height=320, title=fase_nome,
+    )
+    fig.update_layout(
+        margin=dict(t=32, b=0), yaxis_title="",
+        yaxis=dict(categoryorder="total ascending"),
+    )
+
+    alert_cls = "budget-ok" if delta >= 0 else "budget-err"
+    alert_txt = (t("vita_reddito_suff", lc, delta=f"{delta:,}")
+                 if delta >= 0
+                 else t("vita_reddito_deficit", lc, abs_delta=f"{abs(delta):,}"))
+
+    # Phase priorities
+    priorita_lista = t("vita_fase_priorita", lc)
+    prios = priorita_lista[fase_idx] if isinstance(priorita_lista, list) and fase_idx < len(priorita_lista) else []
 
     return html.Div([
         html.Br(),
         dbc.Row([
             dbc.Col([
-                dbc.Table.from_dataframe(df_fase, striped=True, hover=True, responsive=True, size="sm"),
-                html.Div([
-                    html.Div([html.Div(t("vita_totale_mensile", lc), className="kpi-label"),
-                              html.Div(f"CHF {totale_fase:,}", className="kpi-value")], className="kpi-box"),
-                ], style={"marginTop": "12px"}),
-                html.Div(alert, style={"marginTop": "12px"}),
+                dbc.Table.from_dataframe(df_fase, striped=True, hover=True,
+                                         responsive=True, size="sm"),
+                dbc.Row([
+                    dbc.Col(html.Div([
+                        html.Div(t("vita_totale_mensile", lc), className="kpi-label"),
+                        html.Div(f"CHF {totale:,}", className="kpi-value"),
+                    ], className="kpi-box"), width=6),
+                    dbc.Col(html.Div([
+                        html.Div(t("vita_costo_pp", lc), className="kpi-label"),
+                        html.Div(f"CHF {costo_pp:,}", className="kpi-value"),
+                    ], className="kpi-box"), width=6),
+                ], className="g-2 mt-2"),
+                html.Div(alert_txt, className=alert_cls, style={"marginTop": "10px"}),
             ], width=5),
-            dbc.Col([dcc.Graph(figure=fig, config={"displayModeBar": False})], width=7),
+            dbc.Col([
+                dcc.Graph(figure=fig, config={"displayModeBar": False}),
+            ], width=7),
         ]),
+        html.Hr(),
+        html.H6(f"📋 Priorità finanziarie — {fase_nome}",
+                style={"fontWeight": "700", "marginBottom": "10px"}),
+        html.Div([
+            html.Div(p, style={"fontSize": "13px", "padding": "6px 0",
+                               "borderBottom": "1px solid #f0f0f0"})
+            for p in prios
+        ], style={"background": "#f8f9fc", "borderRadius": "10px",
+                  "padding": "14px 18px"}),
     ])
 
 

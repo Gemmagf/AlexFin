@@ -151,6 +151,64 @@ ASSICURAZIONI = [
         "profili_raccomandati": ["tutti"],
     },
     {
+        "id": "protezione_giuridica",
+        "nome": "Protezione Giuridica",
+        "icona": "⚖️",
+        "categoria": "Responsabilità",
+        "descrizione": "Copre le spese legali in caso di controversie: lavoro, locazione, contratti, traffico, diritto della famiglia. In Svizzera è una delle assicurazioni più sottoscritte.",
+        "coperture": [
+            "Spese avvocato e spese processuali",
+            "Controversie di lavoro (licenziamento, infortuni)",
+            "Diritto locativo (disdette, depositi, danni)",
+            "Controversie contrattuali e di consumo",
+            "Diritto del traffico e infrazioni stradali",
+        ],
+        "esclusioni": [
+            "Controversie preesistenti alla stipula",
+            "Diritto penale (illeciti intenzionali)",
+            "Controversie familiari (divorzio) — solo in alcuni contratti",
+        ],
+        "costo_indicativo": "CHF 15 – 40 / mese",
+        "costo_note": "Dipende dai moduli scelti (lavoro, traffico, privato). Spesso in bundle con RC.",
+        "premi_per_eta": {25: 18, 30: 20, 35: 22, 40: 25, 45: 28, 50: 30, 55: 32},
+        "capitale_esempio": None,
+        "scenario": {
+            "caso": "Anna, locataria, riceve disdetta illegittima. L'inquilino non ha torto.",
+            "senza": "Avvocato: CHF 4,000–8,000. Molti rinunciano per paura dei costi.",
+            "con": "Protezione giuridica copre le spese legali. Diritti tutelati senza stress.",
+        },
+        "profili_raccomandati": ["tutti"],
+    },
+    {
+        "id": "economie_domestiche",
+        "nome": "Economie Domestiche (Hausrat)",
+        "icona": "🏠",
+        "categoria": "Beni",
+        "descrizione": "Protegge il contenuto dell'abitazione contro furto, incendio, danni d'acqua, rottura. Obbligatoria in molti contratti di locazione in Svizzera.",
+        "coperture": [
+            "Furto in casa e scasso",
+            "Incendio e danni da fumo",
+            "Danni da acqua (rottura tubazioni, allagamento)",
+            "Danni da vetri rotti",
+            "Oggetti di valore (gioielli, elettronica)",
+        ],
+        "esclusioni": [
+            "Danni causati da incuria o negligenza grave",
+            "Oggetti di valore oltre il limite assicurato senza dichiarazione",
+            "Danni da terremoto (copertura separata)",
+        ],
+        "costo_indicativo": "CHF 10 – 30 / mese",
+        "costo_note": "Dipende dal valore del contenuto assicurato e dal cantone",
+        "premi_per_eta": {25: 12, 30: 14, 35: 16, 40: 18, 45: 20, 50: 22, 55: 24},
+        "capitale_esempio": 80000,
+        "scenario": {
+            "caso": "Rottura tubazione in cucina: danni a pavimento, mobili e apparecchi.",
+            "senza": "CHF 12,000 di danni interamente a carico del locatario.",
+            "con": "Economie domestiche rimborsa i danni. Solo la franchigia a carico.",
+        },
+        "profili_raccomandati": ["tutti"],
+    },
+    {
         "id": "complementare_spital",
         "nome": "Complementare Ospedaliera",
         "icona": "🏥",
@@ -462,6 +520,22 @@ def calcola_raccomandazioni(profilo: dict, lc: str = "it") -> list:
         "icona": "🛡️",
         "priorita": "Raccomandata",
         "motivo": p("rac_mot_rc"),
+    })
+
+    # Protezione Giuridica (sempre raccomandata)
+    rac.append({
+        "prodotto": p("rac_prod_giuridica"),
+        "icona": "⚖️",
+        "priorita": "Raccomandata",
+        "motivo": p("rac_mot_giuridica"),
+    })
+
+    # Economie Domestiche (sempre raccomandata)
+    rac.append({
+        "prodotto": p("rac_prod_hausrat"),
+        "icona": "🏠",
+        "priorita": "Raccomandata",
+        "motivo": p("rac_mot_hausrat"),
     })
 
     # Complementare ospedaliera

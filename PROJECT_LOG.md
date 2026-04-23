@@ -5,6 +5,36 @@
 
 ---
 
+## 📋 Changelog — Sessió 7c (2026-04-23) — Fases de vida redissenyades + productes nous
+
+### Issue 8 — Fases de vida: redisseny complet ✅
+**Problema:** Els costos predefinits eren poc realistes (incloïen "Saldo" com a partida de cost, preus KK desactualitzats, fases amb poca utilitat pràctica per a un assessor).
+
+**Solució — `dash_pages/vida_budget.py` + `i18n.py`:**
+- **Auto-detecció de la fase** a partir del perfil del client (edat + fills) via `_auto_fase(eta, figli)`. La fase suggerida es marca en vermell al slider.
+- **Costos 2026 realistes** (font: UST, comparis.ch) — 7 fases, sense "Saldo" (calculat automàticament com a delta):
+  - *Giovane single*: CHF 4,409/mes (affitto 1.700, KK 499, 3a 500...)
+  - *Coppia senza figli*: CHF 7,468/mes (KK 998 per 2 adults)
+  - *Famiglia bambini piccoli*: CHF 10,430/mes (asilo nido 2.200!)
+  - *Figli adolescenti*: CHF 9,500/mes
+  - *Figli università*: CHF 9,950/mes (contributo figli 2.000)
+  - *Nido vuoto 50+*: CHF 7,850/mes (3a al màxim 1.450)
+  - *Pre-pensione*: CHF 7,900/mes (risparmio extra 1.500)
+- **KPI "cost per persona"** afegit (total / número de persones de la fase)
+- **Llista de prioritats financeres** per cada fase (5 punts accionables específics, amb emojis 🔴✅⚠️💡) — clau i18n `vita_fase_priorita` (llista de llistes, 7 fases × 5 prioritats)
+- Noves claus i18n: `vita_fase_badge`, `vita_fase_pers`, `vita_reddito_nec`, `vita_costo_pp`
+
+### Issue 6 — Productes d'assegurança que faltaven ✅
+**Productes nous afegits a `products.py`:**
+- **⚖️ Protezione Giuridica**: CHF 15-40/mes, cobertura fins CHF 300.000 en disputes laborals, lloguer, contractes. Sempre recomanada.
+- **🏠 Economie Domestiche (Hausrat)**: CHF 10-30/mes, protegeix el contingut de la llar contra robatori, incendi, danys d'aigua. Freqüentment obligatòria en contractes de lloguer.
+- Ambdós afegits al motor de recomanació (`calcola_raccomandazioni`) com a "Raccomandata" per a tots els perfils
+- Claus i18n (`rac_prod_giuridica`, `rac_prod_hausrat`, `rac_mot_giuridica`, `rac_mot_hausrat`) per IT/DE/FR/EN
+
+**Fitxers canviats:** `dash_pages/vida_budget.py`, `products.py`, `i18n.py`
+
+---
+
 ## 📋 Changelog — Sessió 7b (2026-04-23) — Preus KK reals 2026 (tots 26 cantons)
 
 ### Issue 5 — Preus Krankenkasse no realistes ✅
