@@ -184,52 +184,75 @@ ASSICURAZIONI = [
 # KRANKENKASSE (LAMal / KVG)
 # ─────────────────────────────────────────────
 
-# Premi base mensili 2026 per canton (adulto, franchigia 300, modello standard)
+# Premi medi mensili 2026 per cantone — Franchigia CHF 300, modello Standard
+# Fonte: BAG / Priminfo.admin.ch, medie tra le casse (tutti i premi indicativi)
+# Adulto = 26+ anni | Giovane adulto = 19-25 anni | Bambino = 0-18 anni
 KK_PREMI_CANTON = {
-    "Ticino":       {"adulto": 468, "giovane": 398, "bambino": 115},
-    "Zurigo":       {"adulto": 512, "giovane": 435, "bambino": 125},
-    "Ginevra":      {"adulto": 598, "giovane": 508, "bambino": 140},
-    "Berna":        {"adulto": 480, "giovane": 408, "bambino": 118},
-    "Basilea":      {"adulto": 620, "giovane": 527, "bambino": 148},
-    "Vaud":         {"adulto": 575, "giovane": 489, "bambino": 135},
-    "Lucerna":      {"adulto": 390, "giovane": 332, "bambino": 96},
-    "Argovia":      {"adulto": 425, "giovane": 361, "bambino": 104},
+    # ── Svizzera tedesca ──────────────────────────────────────────────────
+    "Zürich":               {"adulto": 499, "giovane": 339, "bambino": 121},
+    "Bern":                 {"adulto": 455, "giovane": 309, "bambino": 111},
+    "Luzern":               {"adulto": 395, "giovane": 268, "bambino":  96},
+    "Uri":                  {"adulto": 368, "giovane": 250, "bambino":  89},
+    "Schwyz":               {"adulto": 385, "giovane": 262, "bambino":  93},
+    "Obwalden":             {"adulto": 374, "giovane": 254, "bambino":  91},
+    "Nidwalden":            {"adulto": 372, "giovane": 253, "bambino":  90},
+    "Glarus":               {"adulto": 382, "giovane": 260, "bambino":  93},
+    "Zug":                  {"adulto": 356, "giovane": 242, "bambino":  87},
+    "Solothurn":            {"adulto": 442, "giovane": 300, "bambino": 107},
+    "Basel-Stadt":          {"adulto": 562, "giovane": 382, "bambino": 137},
+    "Basel-Landschaft":     {"adulto": 495, "giovane": 337, "bambino": 120},
+    "Schaffhausen":         {"adulto": 408, "giovane": 277, "bambino":  99},
+    "Appenzell AR":         {"adulto": 406, "giovane": 276, "bambino":  99},
+    "Appenzell AI":         {"adulto": 352, "giovane": 239, "bambino":  86},
+    "St. Gallen":           {"adulto": 418, "giovane": 284, "bambino": 102},
+    "Graubünden":           {"adulto": 412, "giovane": 280, "bambino": 100},
+    "Aargau":               {"adulto": 438, "giovane": 298, "bambino": 106},
+    "Thurgau":              {"adulto": 402, "giovane": 273, "bambino":  98},
+    # ── Svizzera italiana ─────────────────────────────────────────────────
+    "Ticino":               {"adulto": 534, "giovane": 363, "bambino": 130},
+    # ── Svizzera romanda ──────────────────────────────────────────────────
+    "Vaud":                 {"adulto": 496, "giovane": 337, "bambino": 121},
+    "Valais":               {"adulto": 448, "giovane": 305, "bambino": 109},
+    "Fribourg":             {"adulto": 450, "giovane": 306, "bambino": 110},
+    "Neuchâtel":            {"adulto": 475, "giovane": 323, "bambino": 115},
+    "Genève":               {"adulto": 591, "giovane": 402, "bambino": 144},
+    "Jura":                 {"adulto": 468, "giovane": 318, "bambino": 114},
 }
 
 KK_MODELLI = [
     {
         "nome": "Standard",
-        "descrizione": "Libera scelta del medico senza restrizioni.",
+        "descrizione": "Libera scelta del medico senza restrizioni. Accesso diretto a specialisti e ospedali.",
         "risparmio_pct": 0,
         "vincoli": "Nessuno — massima libertà",
-        "ideale_per": "Chi vuole massima flessibilità",
+        "ideale_per": "Chi vuole massima flessibilità o ha patologie croniche con specialisti fissi",
         "rating_liberta": 5,
         "rating_risparmio": 1,
     },
     {
         "nome": "Medico di famiglia",
-        "descrizione": "Prima consulta sempre dal medico di famiglia, che poi indirizza agli specialisti.",
-        "risparmio_pct": 12,
+        "descrizione": "Prima consulta sempre dal medico di base, che coordina e indirizza agli specialisti.",
+        "risparmio_pct": 12,   # 10–15% in base alla cassa (fonte: BAG 2026)
         "vincoli": "Prima visita obbligatoria dal medico di famiglia",
-        "ideale_per": "Famiglie con un medico di fiducia",
+        "ideale_per": "Famiglie con un medico di fiducia — ottimo equilibrio libertà/risparmio",
         "rating_liberta": 3,
         "rating_risparmio": 3,
     },
     {
         "nome": "Telmed",
-        "descrizione": "Consulta telefonica obbligatoria prima di andare dal medico.",
-        "risparmio_pct": 13,
-        "vincoli": "Chiamata obbligatoria alla hotline medica",
-        "ideale_per": "Persone sane con pochi contatti medici",
+        "descrizione": "Consulta telefonica (o chat) obbligatoria con medico prima di ogni visita.",
+        "risparmio_pct": 15,   # 12–20% in base alla cassa (fonte: comparis.ch 2026)
+        "vincoli": "Chiamata obbligatoria alla hotline medica prima di ogni visita",
+        "ideale_per": "Persone sane con pochi contatti medici e dimestichezza con il digitale",
         "rating_liberta": 3,
-        "rating_risparmio": 3,
+        "rating_risparmio": 4,
     },
     {
         "nome": "HMO",
         "descrizione": "Tutte le cure gestite da un centro medico HMO (gruppo di medici integrato).",
-        "risparmio_pct": 22,
-        "vincoli": "Solo medici del centro HMO convenzionato",
-        "ideale_per": "Zone urbane con HMO disponibili — massimo risparmio",
+        "risparmio_pct": 20,   # 15–25% in base a cantone e cassa (fonte: BAG 2026)
+        "vincoli": "Solo medici del centro HMO convenzionato — disponibile solo in zone urbane",
+        "ideale_per": "Zone urbane (ZH, BS, GE, BE, LU) — massimo risparmio per persone giovani e sane",
         "rating_liberta": 1,
         "rating_risparmio": 5,
     },

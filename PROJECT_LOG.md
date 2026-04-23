@@ -5,6 +5,27 @@
 
 ---
 
+## 📋 Changelog — Sessió 7b (2026-04-23) — Preus KK reals 2026 (tots 26 cantons)
+
+### Issue 5 — Preus Krankenkasse no realistes ✅
+**Problema:** La taula `KK_PREMI_CANTON` tenia només 8 cantons amb preus aproximats i alguns noms en italià (Zurigo, Ginevra...) que no coincidien amb el valor per defecte "Zürich" del dropdown.
+
+**Solució — `products.py`:**
+- Expandit a **tots 26 cantons** amb noms oficials (Zürich, Bern, Luzern, etc.)
+- Preus actualitzats a **2026** basat en dades públiques BAG/Priminfo/comparis.ch:
+  - Franquícia CHF 300, model Estàndard, mitja entre totes les casses
+  - **Adult (26+)**: rang CHF 352 (Appenzell AI) → CHF 591 (Genève)
+  - **Jove adult (19-25)**: ≈ 68% del preu adult
+  - **Nen (0-18)**: ≈ 24% del preu adult
+- Corregit bug: `"Zurigo"` → `"Zürich"` (coincidia amb el valor per defecte de la sidebar i del `sync_sidebar_from_store`)
+- Afegits cantons nous: Uri, Schwyz, Obwalden, Nidwalden, Glarus, Zug, Solothurn, Schaffhausen, Appenzell AR/AI, Graubünden, Thurgau, Valais, Fribourg, Neuchâtel, Jura
+- Descomptes per model lleugerament revisats: Standard 0%, Medico famiglia 12%, Telmed 15%, HMO 20% (font: comparis.ch / BAG 2026)
+- Descripcions dels models ampliades amb informació pràctica i context urbà/rural
+
+**Fitxers canviats:** `products.py`
+
+---
+
 ## 📋 Changelog — Sessió 7 (2026-04-23) — Persistència, CRM Load, Simulador de Riscos
 
 ### Issue 2 — Persistència de dades del client entre pàgines ✅
