@@ -12,7 +12,7 @@ import dash
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import callback, dcc, html, Input, Output, State
+from dash import callback, dcc, html, Input, Output, State, ALL, ctx
 import dash_bootstrap_components as dbc
 
 from i18n import t
@@ -253,30 +253,55 @@ def render_raccomandazioni(store, lc, eta, reddito_mensile, reddito_annuo, situa
 
 
 # ─────────────────────────────────────────────
-# TAB 2 — SIMULATORE
+# TAB 2 — SIMULATORE SCENARI DI RISCHIO
 # ─────────────────────────────────────────────
 
 def render_simulatore(lc, eta, reddito_mensile):
     return html.Div([
-        html.H4(t("sim_header", lc), style={"marginBottom": "16px"}),
+        html.H4(t("sim_header", lc), style={"marginBottom": "6px"}),
+        html.P(t("sim_risk_subtitle", lc),
+               style={"color": "#666", "fontSize": "13px", "marginBottom": "20px"}),
         dbc.Row([
-            dbc.Col([html.Label(t("sim_risparmi", lc), style={"fontSize": "12px"}),
-                     dcc.Input(id="sim-risparmi", type="number", value=25000, min=0, max=2000000, step=5000, className="form-control")], width=3),
-            dbc.Col([html.Label(t("sim_contrib", lc), style={"fontSize": "12px"}),
-                     dcc.Input(id="sim-contrib", type="number", value=int(reddito_mensile * 0.15), min=0, max=20000, step=100, className="form-control")], width=3),
-            dbc.Col([html.Label(t("sim_rendimento", lc), style={"fontSize": "12px"}),
-                     dcc.Slider(id="sim-rend", min=0, max=8, step=0.5, value=4.0, marks={0: "0%", 4: "4%", 8: "8%"})], width=3),
-            dbc.Col([html.Label(t("sim_eta_pens", lc), style={"fontSize": "12px"}),
-                     dcc.Slider(id="sim-eta-pens", min=55, max=70, step=1, value=65, marks={55: "55", 65: "65", 70: "70"})], width=3),
+            dbc.Col([
+                html.Label(t("sim_scenario_lbl", lc),
+                           style={"fontSize": "12px", "fontWeight": "600", "marginBottom": "8px"}),
+                dcc.RadioItems(
+                    id="sim-scenario-type",
+                    options=[
+                        {"label": f" 🤒  {t('sim_scen_malattia', lc)}", "value": "malattia"},
+                        {"label": f" 🦽  {t('sim_scen_invalidita', lc)}", "value": "invalidita"},
+                        {"label": f" 💼  {t('sim_scen_atur', lc)}", "value": "atur"},
+                    ],
+                    value="malattia",
+                    inputStyle={"marginRight": "6px"},
+                    labelStyle={"display": "block", "marginBottom": "10px", "fontSize": "13px"},
+                ),
+            ], md=4),
+            dbc.Col([
+                html.Label(t("sim_dipendenti_label", lc), style={"fontSize": "12px"}),
+                dcc.RadioItems(
+                    id="sim-con-dipendenti",
+                    options=[{"label": " No", "value": "no"},
+                             {"label": f" {t('sidebar_figli_opt', lc)[1]}", "value": "si"}],
+                    value="no",
+                    inline=True,
+                    style={"fontSize": "13px", "marginBottom": "16px"},
+                ),
+                html.Label(t("sim_grado_inval_label", lc), style={"fontSize": "12px"}),
+                dcc.Slider(
+                    id="sim-grado-inv",
+                    min=25, max=100, step=25, value=50,
+                    marks={25: "25%", 50: "50%", 75: "75%", 100: "100%"},
+                    tooltip={"always_visible": False},
+                ),
+            ], md=4),
+            dbc.Col([
+                html.Div(id="sim-scenario-info",
+                         style={"background": "#f8f9fc", "borderRadius": "10px",
+                                "padding": "14px", "fontSize": "12px", "color": "#555",
+                                "lineHeight": "1.6"}),
+            ], md=4),
         ], className="mb-3 g-3"),
-        html.Div([
-            html.Strong(f"⚡ {t('sim_whatif', lc)}", style={"fontSize": "14px"}),
-            dbc.Row([
-                dbc.Col(dcc.Checklist(id="sim-shock", options=[{"label": f" {t('sim_shock', lc)}", "value": "shock"}], value=[], inline=True), width=4),
-                dbc.Col(dcc.Checklist(id="sim-part", options=[{"label": f" {t('sim_part', lc)}", "value": "part"}], value=[], inline=True), width=4),
-                dbc.Col(dcc.Checklist(id="sim-spesa", options=[{"label": f" {t('sim_spesa', lc)}", "value": "spesa"}], value=[], inline=True), width=4),
-            ]),
-        ], style={"background": "#f8f9fc", "borderRadius": "10px", "padding": "14px", "marginBottom": "16px"}),
         html.Div(id="sim-chart-container"),
         html.Div(id="sim-metrics"),
         dcc.Store(id="sim-eta-store", data=eta),
@@ -288,75 +313,144 @@ def render_simulatore(lc, eta, reddito_mensile):
 @callback(
     Output("sim-chart-container", "children"),
     Output("sim-metrics", "children"),
-    Input("sim-risparmi", "value"),
-    Input("sim-contrib", "value"),
-    Input("sim-rend", "value"),
-    Input("sim-eta-pens", "value"),
-    Input("sim-shock", "value"),
-    Input("sim-part", "value"),
-    Input("sim-spesa", "value"),
+    Output("sim-scenario-info", "children"),
+    Input("sim-scenario-type", "value"),
+    Input("sim-con-dipendenti", "value"),
+    Input("sim-grado-inv", "value"),
     Input("sim-eta-store", "data"),
     Input("sim-reddito-store", "data"),
     Input("sim-lc-store", "data"),
     prevent_initial_call=False,
 )
-def update_simulatore(risparmi_att, contrib_mens, rend_sim, eta_pens,
-                      shock_vals, part_vals, spesa_vals, eta, reddito_mensile, lc):
-    risparmi_att = risparmi_att or 25000
-    contrib_mens = contrib_mens or 800
-    rend_sim = rend_sim or 4.0
-    eta_pens = eta_pens or 65
+def update_simulatore(scenario, con_dip, grado_inv, eta, reddito_mensile, lc):
+    scenario = scenario or "malattia"
+    con_dip = con_dip or "no"
+    grado_inv = grado_inv or 50
     eta = eta or 38
     reddito_mensile = reddito_mensile or 5500
     lc = lc or "it"
-    anni_s = max(eta_pens - eta, 1)
-    contrib_base = contrib_mens * 12
 
-    def sim_pat(risparmi, contrib, rend, anni, shock_anno=None):
-        p = [risparmi]
-        for i in range(1, anni + 1):
-            c = contrib
-            if shock_anno and i == shock_anno:
-                c -= 50000
-            p.append(max(p[-1] * (1 + rend / 100) + c, 0))
-        return p
+    months = list(range(0, 25))   # default 24-month window
 
-    _eta_lbl = t("kpi_eta", lc)
-    _scen_lbl = t("sim_scenario_lbl", lc)
-    pat_base = sim_pat(risparmi_att, contrib_base, rend_sim, anni_s)
-    rows_sim = [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: "Base"} for i, p in enumerate(pat_base)]
+    # ── Swiss social insurance parameters (2026) ──────────────────────────
+    AVS_AI_MAX = 2520          # CHF/month max AI full pension
+    ALV_MAX_SALARY = 12350     # CHF/month (CHF 148,200/year insured ceiling)
 
-    if shock_vals:
-        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_shock", lc)}
-                     for i, p in enumerate(sim_pat(risparmi_att, contrib_base, rend_sim - 2, anni_s))]
-    if part_vals:
-        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_part", lc)}
-                     for i, p in enumerate(sim_pat(risparmi_att, contrib_base * 0.5, rend_sim, anni_s))]
-    if spesa_vals:
-        rows_sim += [{_eta_lbl: eta + i, "CHF": p, _scen_lbl: t("sim_spesa", lc)}
-                     for i, p in enumerate(sim_pat(risparmi_att, contrib_base, rend_sim, anni_s, shock_anno=5))]
+    if scenario == "malattia":
+        # Employer/Taggeld insurance: 80% for up to 730 days (~24 months)
+        pct_cop = 0.80
+        copertura = [reddito_mensile * pct_cop] * len(months)
+        gap_vals  = [reddito_mensile * (1 - pct_cop)] * len(months)
+        durata_mesi = 24
+        prodotto = f"🤒 Taggeldversicherung — {t('rac_prod_perdita', lc)}"
+        info_lines = [
+            f"📋 Datore di lavoro copre 80% per 730 gg (~24 mesi).",
+            f"⚠️ Gap mensile: CHF {reddito_mensile * 0.20:,.0f}/mese.",
+            f"💡 Soluzione: indennità giornaliera complementare.",
+        ]
 
-    df_sim = pd.DataFrame(rows_sim)
-    fig = px.line(df_sim, x=_eta_lbl, y="CHF", color=_scen_lbl,
-                  color_discrete_sequence=["#c0392b", "#3498db", "#27ae60", "#f39c12"],
-                  template="plotly_white", height=320)
-    fig.add_vline(x=eta_pens, line_dash="dash", line_color="#555")
-    fig.update_layout(margin=dict(t=10, b=0), yaxis=dict(tickformat=",.0f"))
+    elif scenario == "invalidita":
+        months = list(range(0, 37))   # 36-month view — AI kicks in ~month 12
+        ai_full = min(AVS_AI_MAX, reddito_mensile * 0.60)
+        lpp_dis  = min(reddito_mensile * 0.35, 1800)          # simplified 2nd pillar
+        benefit  = (ai_full + lpp_dis) * (grado_inv / 100)
+        # First 12 months: waiting period (only employer salary obligation ~3 months)
+        copertura = []
+        for m in months:
+            if m < 3:
+                copertura.append(reddito_mensile * 0.80)   # employer obligation
+            elif m < 12:
+                copertura.append(0.0)                       # gap period
+            else:
+                copertura.append(benefit)                   # AI + LPP
+        gap_vals    = [max(reddito_mensile - c, 0) for c in copertura]
+        durata_mesi = None   # permanent once established
+        prodotto = f"🦽 AI + LPP + {t('rac_prod_invalidita', lc)}"
+        info_lines = [
+            f"📋 AI max CHF {AVS_AI_MAX:,}/mese al 100%.",
+            f"⚠️ Attesa AI: ~12 mesi. Gap totale periodo attesa: CHF {sum(gap_vals[:12]):,.0f}.",
+            f"💡 Grado {grado_inv}% → benefit stimato CHF {benefit:,.0f}/mese.",
+        ]
 
-    pat_fin = int(pat_base[-1])
-    rendita = int(pat_fin * 0.04 / 12)
-    copertura = rendita / max(reddito_mensile, 1) * 100
+    else:   # atur / unemployment
+        pct_alv   = 0.80 if con_dip == "si" else 0.70
+        alv_base  = min(reddito_mensile, ALV_MAX_SALARY) * pct_alv
+        alv_days  = 520 if con_dip == "si" else 400   # days
+        alv_months = round(alv_days / 30)
+        copertura = [alv_base if m < alv_months else 0.0 for m in months]
+        gap_vals  = [reddito_mensile - c for c in copertura]
+        durata_mesi = alv_months
+        pct_lbl   = "80%" if con_dip == "si" else "70%"
+        prodotto  = f"💼 ALV {pct_lbl} + {t('rac_prod_3a', lc)}"
+        info_lines = [
+            f"📋 ALV: {pct_lbl} del salario assicurato per {alv_days} giorni (~{alv_months} mesi).",
+            f"⚠️ Tetto ALV: CHF {ALV_MAX_SALARY:,}/mese. Benefit: CHF {alv_base:,.0f}/mese.",
+            f"💡 Dopo {alv_months} mesi: reddito zero. Riserva liquida essenziale.",
+        ]
+
+    # ── Chart ─────────────────────────────────────────────────────────────
+    _x_lbl   = t("sim_dopo_evento", lc)
+    _red_lbl = t("sim_reddito_attuale", lc)
+    _cop_lbl = t("sim_copertura_lbl", lc)
+    _gap_lbl = t("sim_gap_lbl", lc)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=months, y=[reddito_mensile] * len(months),
+        name=_red_lbl, mode="lines",
+        line=dict(color="#2c3e50", width=2, dash="dot"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=months, y=copertura,
+        name=_cop_lbl, mode="lines",
+        fill="tozeroy", fillcolor="rgba(39,174,96,0.15)",
+        line=dict(color="#27ae60", width=2),
+    ))
+    fig.add_trace(go.Scatter(
+        x=months, y=gap_vals,
+        name=_gap_lbl, mode="lines",
+        fill="tozeroy", fillcolor="rgba(231,76,60,0.12)",
+        line=dict(color="#e74c3c", width=2),
+    ))
+    if durata_mesi and durata_mesi <= max(months):
+        fig.add_vline(x=durata_mesi, line_dash="dash", line_color="#f39c12",
+                      annotation_text="Fine copertura", annotation_position="top right")
+    fig.update_layout(
+        template="plotly_white", height=300,
+        margin=dict(t=10, b=0),
+        xaxis_title=_x_lbl,
+        yaxis=dict(tickformat=",.0f", title="CHF/mese"),
+        legend=dict(orientation="h", y=-0.30),
+    )
+
+    # ── KPIs ──────────────────────────────────────────────────────────────
+    gap_peak   = max(gap_vals)
+    gap_medio  = sum(gap_vals) / len(gap_vals)
+    tot_cop    = sum(copertura)
+    tot_red    = reddito_mensile * len(months)
+    pct_cop_kpi = (tot_cop / tot_red * 100) if tot_red > 0 else 0
+
+    dur_label = f"{durata_mesi} m" if durata_mesi else "∞ (AI)"
 
     metrics = dbc.Row([
-        dbc.Col(kpi_box(t("sim_patrimonio", lc), f"CHF {pat_fin:,}"), width=3),
-        dbc.Col(kpi_box(t("sim_versato", lc), f"CHF {int(contrib_base * anni_s):,}"), width=3),
-        dbc.Col(kpi_box(t("sim_rendita", lc), f"CHF {rendita:,}/m"), width=3),
-        dbc.Col(kpi_box(t("sim_copertura", lc), f"{copertura:.0f}%",
-                        delta="≥ 70% ✓" if copertura >= 70 else "< 70% ⚠️",
-                        delta_good=copertura >= 70), width=3),
+        dbc.Col(kpi_box(
+            t("sim_gap_mensile", lc), f"CHF {gap_peak:,.0f}/m",
+            delta="⚠️ Gap presente" if gap_peak > 0 else "✓ Coperto",
+            delta_good=(gap_peak == 0),
+        ), width=3),
+        dbc.Col(kpi_box(
+            t("sim_copertura", lc), f"{pct_cop_kpi:.0f}%",
+            delta="≥ 80% ✓" if pct_cop_kpi >= 80 else "< 80% ⚠️",
+            delta_good=(pct_cop_kpi >= 80),
+        ), width=3),
+        dbc.Col(kpi_box(t("sim_durata_copertura", lc), dur_label), width=3),
+        dbc.Col(kpi_box(t("sim_prodotto_racc", lc), prodotto), width=3),
     ], className="g-3 mt-3")
 
-    return dcc.Graph(figure=fig, config={"displayModeBar": False}), metrics
+    # ── Info box ──────────────────────────────────────────────────────────
+    info_box = html.Div([html.Div(line) for line in info_lines])
+
+    return dcc.Graph(figure=fig, config={"displayModeBar": False}), metrics, info_box
 
 
 def kpi_box(label, value, delta=None, delta_good=True):
@@ -663,10 +757,26 @@ def update_crm_list(n_clicks, store, lc):
 
     items = []
     for c in reversed(clienti[-20:]):
+        nome_c = c.get("nome", "")
         items.append(
             dbc.Card([
-                dbc.CardHeader(f"👤 {c.get('nome','—')} — {c.get('data','—')} · {c.get('canton','—')}",
-                               style={"cursor": "pointer", "fontWeight": "600"}),
+                dbc.CardHeader(
+                    dbc.Row([
+                        dbc.Col(f"👤 {nome_c} — {c.get('data','—')} · {c.get('canton','—')}",
+                                style={"fontWeight": "600", "alignSelf": "center"}),
+                        dbc.Col(
+                            dbc.Button(
+                                f"📂 {t('adv_carica', lc)}",
+                                id={"type": "crm-load-btn", "index": nome_c},
+                                color="danger",
+                                outline=True,
+                                size="sm",
+                                n_clicks=0,
+                            ),
+                            width="auto",
+                        ),
+                    ], align="center", justify="between"),
+                ),
                 dbc.CardBody([
                     dbc.Row([
                         dbc.Col(html.Div([html.Div(t("crm_eta", lc), className="kpi-label"), html.Div(str(c.get("eta", "—")), className="kpi-value")], className="kpi-box"), width=4),
@@ -677,6 +787,24 @@ def update_crm_list(n_clicks, store, lc):
             ], style={"marginBottom": "10px", "border": "1px solid #eef0f4"})
         )
     return html.Div([html.P(f"{len(clienti)} {t('adv_n_clienti', lc)}", style={"color": "#666", "fontSize": "13px"}), *items])
+
+
+@callback(
+    Output("crm-load-store", "data"),
+    Input({"type": "crm-load-btn", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def crm_load_client(n_clicks_list):
+    """Load a CRM client into the sidebar by writing their data to crm-load-store."""
+    if not n_clicks_list or not any(n for n in n_clicks_list if n):
+        return dash.no_update
+    triggered = ctx.triggered_id
+    if not triggered:
+        return dash.no_update
+    nome = triggered.get("index", "")
+    clienti = carica_clienti()
+    match = next((c for c in clienti if c.get("nome") == nome), None)
+    return match if match else dash.no_update
 
 
 @callback(

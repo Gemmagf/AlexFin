@@ -5,7 +5,7 @@ import dash
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import callback, dcc, html, Input, Output, State
+from dash import callback, dcc, html, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
 
 from i18n import t
@@ -48,17 +48,23 @@ def render_header(store):
     return header, tabs
 
 
-@callback(Output("vb-tab-content", "children"), Input("vb-tabs", "active_tab"), Input("app-store", "data"))
-def render_tab(active_tab, store):
+@callback(
+    Output("vb-tab-content", "children"),
+    Input("vb-tabs", "active_tab"),
+    Input("app-store", "data"),
+    State("budget-store", "data"),
+)
+def render_tab(active_tab, store, budget_data):
     if not store:
         store = {}
     lc = store.get("lc", "it")
     reddito_mensile = store.get("reddito_mensile", 5500)
     figli = store.get("figli", False)
     eta = store.get("eta", 38)
+    saved = budget_data or {}
 
     if active_tab == "tab-budget":
-        content = render_budget(lc, reddito_mensile, figli)
+        content = render_budget(lc, reddito_mensile, figli, saved)
     elif active_tab == "tab-fasi":
         content = render_fasi(lc, eta, figli, reddito_mensile)
     elif active_tab == "tab-obiettivi":
@@ -86,29 +92,30 @@ def _budget_row(label, input_id, value, mn, mx, step):
     ]
 
 
-def render_budget(lc, reddito_mensile, figli):
+def render_budget(lc, reddito_mensile, figli, saved=None):
+    s = saved or {}
     return html.Div([
         html.H4(t("vita_tab1", lc), style={"marginBottom": "16px"}),
         dbc.Row([
             dbc.Col([
                 html.H6(f"💰 {t('vita_entrate', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
-                *_budget_row(t("vita_salario1", lc), "vb-sal1", reddito_mensile, 0, 50000, 100),
-                *_budget_row(t("vita_salario2", lc), "vb-sal2", 0, 0, 30000, 100),
-                *_budget_row(t("vita_altri_entrate", lc), "vb-altri", 0, 0, 10000, 50),
+                *_budget_row(t("vita_salario1", lc), "vb-sal1", s.get("sal1", reddito_mensile), 0, 50000, 100),
+                *_budget_row(t("vita_salario2", lc), "vb-sal2", s.get("sal2", 0), 0, 30000, 100),
+                *_budget_row(t("vita_altri_entrate", lc), "vb-altri", s.get("altri", 0), 0, 10000, 50),
             ], md=4),
             dbc.Col([
                 html.H6(f"📤 {t('vita_uscite', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
-                *_budget_row(t("vita_affitto", lc), "vb-aff", 1600, 0, 10000, 50),
-                *_budget_row(t("vita_cibo", lc), "vb-cibo", 700, 0, 5000, 50),
-                *_budget_row(t("vita_trasporto", lc), "vb-tras", 300, 0, 3000, 50),
-                *_budget_row(t("vita_salute", lc), "vb-sal", 500, 0, 5000, 50),
-                *_budget_row(t("vita_intrattenimento", lc), "vb-int", 300, 0, 3000, 50),
-                *_budget_row(t("vita_asilo", lc), "vb-asilo", 800 if figli else 0, 0, 5000, 50),
-                *_budget_row(t("vita_altro", lc), "vb-alt", 200, 0, 3000, 50),
+                *_budget_row(t("vita_affitto", lc), "vb-aff", s.get("aff", 1600), 0, 10000, 50),
+                *_budget_row(t("vita_cibo", lc), "vb-cibo", s.get("cibo", 700), 0, 5000, 50),
+                *_budget_row(t("vita_trasporto", lc), "vb-tras", s.get("tras", 300), 0, 3000, 50),
+                *_budget_row(t("vita_salute", lc), "vb-sal", s.get("salute", 500), 0, 5000, 50),
+                *_budget_row(t("vita_intrattenimento", lc), "vb-int", s.get("intrat", 300), 0, 3000, 50),
+                *_budget_row(t("vita_asilo", lc), "vb-asilo", s.get("asilo", 800 if figli else 0), 0, 5000, 50),
+                *_budget_row(t("vita_altro", lc), "vb-alt", s.get("altro", 200), 0, 3000, 50),
             ], md=4),
             dbc.Col([
                 html.H6(f"🎯 {t('vita_risparmio_target', lc)}", style={"fontSize": "0.85rem", "fontWeight": "700"}),
-                dcc.Input(id="vb-risp-target", type="number", value=int(reddito_mensile * 0.15),
+                dcc.Input(id="vb-risp-target", type="number", value=s.get("risp_target", int(reddito_mensile * 0.15)),
                           min=0, max=10000, step=100, className="form-control form-control-sm",
                           style={"marginBottom": "12px"}),
                 html.Hr(),
@@ -215,6 +222,31 @@ def update_budget(sal1, sal2, altri, aff, cibo, tras, salute, intrat, asilo, alt
     fig_5030.update_layout(margin=dict(t=10, b=0), xaxis_title="", legend=dict(orientation="h", y=-0.4))
 
     return kpis, semaforo, fig_pie, table_5030, fig_5030
+
+
+@callback(
+    Output("budget-store", "data"),
+    Input("vb-sal1", "value"),
+    Input("vb-sal2", "value"),
+    Input("vb-altri", "value"),
+    Input("vb-aff", "value"),
+    Input("vb-cibo", "value"),
+    Input("vb-tras", "value"),
+    Input("vb-sal", "value"),
+    Input("vb-int", "value"),
+    Input("vb-asilo", "value"),
+    Input("vb-alt", "value"),
+    Input("vb-risp-target", "value"),
+    prevent_initial_call=True,
+)
+def save_budget(sal1, sal2, altri, aff, cibo, tras, salute, intrat, asilo, altro, risp_target):
+    """Persist budget inputs to session storage whenever any field changes."""
+    return {
+        "sal1": sal1, "sal2": sal2, "altri": altri,
+        "aff": aff, "cibo": cibo, "tras": tras, "salute": salute,
+        "intrat": intrat, "asilo": asilo, "altro": altro,
+        "risp_target": risp_target,
+    }
 
 
 # ─────────────────────────────────────────────

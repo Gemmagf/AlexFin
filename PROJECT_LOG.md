@@ -1,7 +1,53 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-20 (sessió 6b)  
+> Última actualització: 2026-04-23 (sessió 7)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 7 (2026-04-23) — Persistència, CRM Load, Simulador de Riscos
+
+### Issue 2 — Persistència de dades del client entre pàgines ✅
+**Problema:** Cada vegada que l'usuari navega entre pàgines, `update_store` es disparava amb els valors per defecte de la sidebar (`prevent_initial_call=False`), sobreescrivint les dades guardades a `sessionStorage`.
+
+**Solució — `dash_app.py`:**
+- `dcc.Location(id="url", refresh=False)` afegit al layout global per detectar navegació
+- `update_store` canviat a `prevent_initial_call=True` → ja no s'executa en carregar pàgina
+- Nova callback `sync_sidebar_from_store`: triggered per `url.pathname` i `crm-load-store`; llegeix `app-store` i restaura els valors de la sidebar. Cap loop infinit perquè `update_store` produeix les mateixes dades i Dash no re-dispara descendents.
+- `dcc.Store(id="crm-load-store", storage_type="memory", data=None)` afegit al layout
+- `dcc.Store(id="budget-store", storage_type="session", data={})` afegit al layout
+
+### Issue 1 — CRM: carregar perfil d'un client ✅
+**Problema:** No hi havia manera de carregar les dades d'un client del CRM a la sidebar.
+
+**Solució — `dash_pages/advisor.py`:**
+- Botó `📂 Carica profilo` (`adv_carica`) afegit a cada card del CRM, amb ID de pattern-matching: `{"type": "crm-load-btn", "index": nome_client}`
+- Nova callback `crm_load_client`: llegeix el client del JSON i escriu les seves dades a `crm-load-store`
+- La callback `sync_sidebar_from_store` (a `dash_app.py`) escolta `crm-load-store` i actualitza la sidebar automàticament → `update_store` fires → `app-store` actualitzat amb el nou client
+
+### Issue 3 — Simulador: escenaris de risc (malaltia/invaliditat/atur) ✅
+**Problema:** El simulador anterior mostrava acumulació patrimonial (interessant però no prioritari). L'advisor necessitava visualitzar els gaps d'ingressos en casos de sinistre.
+
+**Solució — `dash_pages/advisor.py` + `i18n.py`:**
+- Redisseny complet de `render_simulatore` i `update_simulatore`
+- Tres escenaris basats en el sistema suís d'assegurances socials (2026):
+  - **🤒 Malattia**: cobertura 80% per 730 dies (employer/Taggeld). Gap: 20%/mes.
+  - **🦽 Invalidità (AI)**: espera 12 mesos, AI max CHF 2.520/mes + LPP, proporcional al grau d'invaliditat (slider 25-100%). Gap durant espera i gap permanent.
+  - **💼 Disoccupazione (ALV)**: 70% (sense dependents) o 80% (amb dependents), màxim 400/520 dies. Techo salarial CHF 148.200/any.
+- Gràfic d'àrea: reddito attuale vs copertura vs gap al llarg del temps
+- KPIs: gap mensual màxim, % cobertura, durada, producte recomanat
+- Info box lateral amb xifres i recomanació concreta
+- `i18n.py`: 13 claus noves (`sim_risk_subtitle`, `sim_scen_malattia/invalidita/atur`, `sim_dipendenti_label`, `sim_grado_inval_label`, `sim_dopo_evento`, `sim_reddito_attuale`, `sim_copertura_lbl`, `sim_gap_lbl`, `sim_gap_mensile`, `sim_durata_copertura`, `sim_prodotto_racc`) per IT/DE/FR/EN/CA
+
+### Issue 7 — Budget mensual: persistència entre navegació ✅
+**Problema:** Els inputs del budget (`vb-sal1`, `vb-aff`, etc.) es resetejaven en canviar de pàgina.
+
+**Solució — `dash_pages/vida_budget.py`:**
+- `render_tab` ara llegeix `State("budget-store", "data")` i el passa a `render_budget`
+- `render_budget(lc, reddito_mensile, figli, saved={})` utilitza valors guardats com a `value` inicial de cada `dcc.Input` (amb fallback als defaults)
+- Nova callback `save_budget`: `prevent_initial_call=True`, guarda tots els camps a `budget-store` (session storage) quan l'usuari modifica qualsevol valor
+
+**Fitxers canviats:** `dash_app.py`, `dash_pages/advisor.py`, `dash_pages/vida_budget.py`, `i18n.py`
 
 ---
 

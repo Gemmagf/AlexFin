@@ -3,7 +3,7 @@
 
 import os
 import dash
-from dash import Dash, html, dcc, callback, Input, Output, State, page_container
+from dash import Dash, html, dcc, callback, Input, Output, State, page_container, ctx
 from flask import session, redirect, request, render_template_string
 import dash_bootstrap_components as dbc
 
@@ -418,6 +418,7 @@ def make_navbar():
 # ─────────────────────────────────────────────
 
 app.layout = html.Div([
+    dcc.Location(id="url", refresh=False),
     dcc.Store(id="app-store", storage_type="session", data={
         "lc": "it",
         "nome": "",
@@ -432,6 +433,10 @@ app.layout = html.Div([
         "ipoteca": False,
         "tolleranza_rischio": "Media",
     }),
+    # Store for loading a CRM client into the sidebar (memory = cleared on tab close)
+    dcc.Store(id="crm-load-store", storage_type="memory", data=None),
+    # Store for persisting monthly budget inputs across navigation
+    dcc.Store(id="budget-store", storage_type="session", data={}),
     make_navbar(),
     html.Div(
         [
@@ -461,7 +466,7 @@ app.layout = html.Div([
     Input("sb-nfigli", "value"),
     Input("sb-ipot", "value"),
     Input("sb-rischio", "value"),
-    prevent_initial_call=False,
+    prevent_initial_call=True,
 )
 def update_store(lc, nome, eta, sesso, sit, canton, reddito, sc, figli_val, n_figli, ipot_val, rischio_idx):
     eta = eta or 38
@@ -491,6 +496,51 @@ def update_store(lc, nome, eta, sesso, sit, canton, reddito, sc, figli_val, n_fi
         "ipoteca": ipoteca,
         "tolleranza_rischio": tolleranza,
     }
+
+
+@callback(
+    Output("sb-lang", "value"),
+    Output("sb-nome", "value"),
+    Output("sb-eta", "value"),
+    Output("sb-sesso", "value"),
+    Output("sb-sit", "value"),
+    Output("sb-canton", "value"),
+    Output("sb-reddito", "value"),
+    Output("sb-sc", "value"),
+    Output("sb-figli", "value"),
+    Output("sb-nfigli", "value"),
+    Output("sb-ipot", "value"),
+    Output("sb-rischio", "value"),
+    Input("url", "pathname"),
+    Input("crm-load-store", "data"),
+    State("app-store", "data"),
+    prevent_initial_call=False,
+)
+def sync_sidebar_from_store(pathname, crm_data, store):
+    """Repopulate sidebar from persisted store on navigation, or from CRM when a client is loaded."""
+    risc_rev = {"Bassa": 0, "Media": 1, "Alta": 2}
+    triggered = ctx.triggered_id
+
+    # When a CRM client is explicitly loaded, use that data
+    if triggered == "crm-load-store" and crm_data:
+        d = crm_data
+    else:
+        d = store or {}
+
+    return (
+        d.get("lc", "it"),
+        d.get("nome", ""),
+        d.get("eta", 38),
+        d.get("sesso", "M"),
+        d.get("situazione", "Dipendente"),
+        d.get("canton", "Zürich"),
+        d.get("reddito_mensile", 5500),
+        d.get("stato_civile", "Single"),
+        "Si" if d.get("figli", False) else "No",
+        d.get("n_figli", 0) or 1,
+        "Si" if d.get("ipoteca", False) else "No",
+        risc_rev.get(d.get("tolleranza_rischio", "Media"), 1),
+    )
 
 
 @callback(
