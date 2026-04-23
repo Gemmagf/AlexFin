@@ -1,7 +1,24 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-23 (sessió 7)  
+> Última actualització: 2026-04-23 (sessió 7d)  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📋 Changelog — Sessió 7d (2026-04-23) — Auditoria i18n: traduccions CA completes
+
+### Traduccions Català (CA) completades ✅
+**Problema:** L'script d'auditoria revelava ⚠️ fallback a italià per a Català en diverses claus noves.
+
+**Claus afegides al bloc `_EXTRA["ca"]` de `i18n.py`:**
+- `vita_fase_badge`, `vita_fase_pers`, `vita_reddito_nec`, `vita_costo_pp` — etiquetes de fase de vida
+- `vita_fase_priorita` — llista completa (7 fases × 5 prioritats accionables en català)
+- `rac_prod_giuridica`, `rac_prod_hausrat` — noms de productes nous
+- `rac_mot_giuridica`, `rac_mot_hausrat` — motivacions dels productes nous
+
+**Auditoria final:** Totes les 12 claus verificades mostren ✅ per a tots 5 idiomes (IT/DE/FR/EN/CA). Zero fallbacks a italià per a claus actives.
+
+**Fitxers canviats:** `i18n.py`
 
 ---
 
