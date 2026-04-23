@@ -46,7 +46,7 @@
 - **⚖️ Protezione Giuridica**: CHF 15-40/mes, cobertura fins CHF 300.000 en disputes laborals, lloguer, contractes. Sempre recomanada.
 - **🏠 Economie Domestiche (Hausrat)**: CHF 10-30/mes, protegeix el contingut de la llar contra robatori, incendi, danys d'aigua. Freqüentment obligatòria en contractes de lloguer.
 - Ambdós afegits al motor de recomanació (`calcola_raccomandazioni`) com a "Raccomandata" per a tots els perfils
-- Claus i18n (`rac_prod_giuridica`, `rac_prod_hausrat`, `rac_mot_giuridica`, `rac_mot_hausrat`) per IT/DE/FR/EN
+- Claus i18n (`rac_prod_giuridica`, `rac_prod_hausrat`, `rac_mot_giuridica`, `rac_mot_hausrat`) per IT/DE/FR/EN/CA
 
 **Fitxers canviats:** `dash_pages/vida_budget.py`, `products.py`, `i18n.py`
 
@@ -441,14 +441,16 @@ El sidebar escriu a l'store amb cada canvi. Cada pàgina llegeix l'store com a `
 - Filtres per prioritat
 - Indicador semàfor si hi ha lacuna pensionística
 
-#### 📈 Simulatore Patrimoniale
-- Inputs: risparmi attuali, risparmio mensile, rendimento %, edat de pensionament
-- Gràfic Plotly interactiu: projecció del patrimoni fins al pensionament
-- 3 escenaris what-if opcionals:
-  - Shock de mercat (−2% rendiment)
-  - Reducció d'ingressos al 50%
-  - Despesa extraordinaria CHF 50.000
-- KPIs de resultat: patrimoni final, total aportat, rendita mensile (regla 4%), cobertura % vs. reddito
+#### 📈 Simulatore di Rischi
+- Tres escenaris basats en el sistema suís d'assegurances socials 2026:
+  - **🤒 Malattia (Taggeld)**: cobertura 80% per 730 dies. Gap: 20% permanent durant tot el període.
+  - **🦽 Invalidità (AI/LPP)**: espera 12 mesos sense ingressos, AI max CHF 2.520/mes + LPP, proporcional al grau d'invaliditat (slider 25–100%).
+  - **💼 Disoccupazione (ALV)**: 70% (sense dependents) o 80% (amb dependents), màxim 400/520 dies. Techo salarial CHF 148.200/any.
+- Gràfic d'àrea: reddito attuale vs copertura assicurativa vs gap no cobert al llarg del temps (mesos)
+- Checkbox "Amb familiars a càrrec" (afecta ALV i grau de prioritat)
+- Slider grau d'invaliditat 25–100% (només visible en escenari Invalidità)
+- KPIs: gap mensual màxim, % cobertura, durada de la cobertura, producte recomanat
+- Info box lateral amb descripció detallada de l'escenari i recomanació concreta
 
 #### 📝 Note del Col·loqui + Email
 - Editor de notes de reunió: apunts lliures, temes discutits, pròxims passos
@@ -459,7 +461,8 @@ El sidebar escriu a l'store amb cada canvi. Cada pàgina llegeix l'store com a `
 
 #### 👥 CRM Clienti
 - Guardar perfil complet del client a `clienti.json`
-- Llista de clients guardats amb càrrega i eliminació
+- Llista de clients en cards: edat, ingressos, situació, estat (chiuso / da_chiudere)
+- **Botó "📂 Carica profilo"**: carrega les dades del client seleccionat directament al sidebar (pattern-matching callback → `crm-load-store` → `sync_sidebar_from_store`)
 - KPIs del dashboard: total clients, reunions del mes, pròxima cita
 - Objectiu mensual de clients (slider) amb barra de progrés
 
@@ -469,11 +472,12 @@ El sidebar escriu a l'store amb cada canvi. Cada pàgina llegeix l'store com a `
 **3 sub-tabs:**
 
 #### 🛡️ Assicurazioni Private
-- Catàleg de productes SVAG (definits a `products.py`)
+- Catàleg de **9 productes SVAG** (definits a `products.py`): Vita, Perdita di Guadagno, Invalidità, Infortuni, RC Privata, Complementare Ospedaliera, 3a, LPP, KK + **⚖️ Protezione Giuridica** + **🏠 Hausrat (Economie Domestiche)**
 - Selector de producte amb descripció, categoria, cost indicatiu
 - Gràfic Plotly: evolució del premi per edat
 - Detall: cobertures, exclusions, cas real comparatiu (amb vs. sense assegurança)
 - Estimació de cost per l'edat actual del client
+- Motor de recomanació (`calcola_raccomandazioni`): Protezione Giuridica i Hausrat sempre "Raccomandata"
 
 #### 💊 Krankenkasse (LAMal/KVG)
 - Sub-tab 1: Franquícies (300, 500, 1000, 1500, 2000, 2500 CHF) i models (Standard, Telmed, HMO, Médecin de famille) amb descripció i estalvi estimat
@@ -493,15 +497,19 @@ El sidebar escriu a l'store amb cada canvi. Cada pàgina llegeix l'store com a `
 
 #### 🏠 Budget Mensile
 - 3 fonts d'ingressos configurables (salari principal, segon reddito, altri)
-- 7 categories de despeses (affitto, alimentació, transport, salut, lleure, asilo, altro)
+- 11 categories de despeses (affitto, alimentació, transport, salut, lleure, asilo, telefonia, abbigliamento, 3a, altro...)
 - Regla 50/30/20 adaptada a Suïssa: Necessitats (50%) / Discrecional (30%) / Estalvi (20%)
 - Indicadors semàfor (verd/groc/vermell) per cada categoria
 - Gràfic donut Plotly: distribució de despeses
-- Objectiu d'estalvi mensual personalitzable
+- **Persistència entre navegació**: valors guardats a `budget-store` (session storage), restaurats en tornar a la pàgina
 
 #### 👨‍👩‍👧 Fasi di Vita
-- Selector de fase vital: Jove sense fills → Parella → Família amb nens → Adolescents → Fills a la uni → Niu buit → Pre-pensió
-- Per cada fase: descripció, riscos principals, productes recomanats, costos típics
+- **Auto-detecció de la fase** a partir del perfil (edat + fills) via `_auto_fase(eta, figli)` — fase suggerida marcada en vermell al slider
+- 7 fases amb **costos 2026 realistes** (font: UST, comparis.ch): Giovane single, Coppia, Famiglia piccoli, Adolescenti, Università, Nido vuoto 50+, Pre-pensione
+- Costos van de CHF 4.409/mes (jove single) fins a CHF 10.430/mes (família fills petits amb asilo nido)
+- KPIs: total despeses, ingressos necessaris estimats, **cost per persona** (total / n_persones de la fase)
+- **Llista de 5 prioritats financeres accionables** per cada fase (amb 🔴✅⚠️💡) — totalment localitzada (IT/DE/FR/EN/CA)
+- Slider de fase personalitzable si l'usuari vol explorar altres escenaris
 
 #### 🎯 Obiettivi Finanziari
 - Fins a 5 objectius configurables (nom, import CHF, anys per assolir-lo)
@@ -554,9 +562,18 @@ El sidebar escriu a l'store amb cada canvi. Cada pàgina llegeix l'store com a `
 
 **Arquitectura:**
 - Diccionari `TRANSLATIONS`: claus per idioma, amb traduccions completes per IT, DE, FR, EN, ES, PT, SQ, SR, TR, RM, CA
-- Diccionari `_EXTRA`: claus afegides posteriorment per IT, DE, FR, EN → s'incorporen a TRANSLATIONS via merge amb fallback a IT
+- Diccionari `_EXTRA`: claus afegides posteriorment → s'incorporen a TRANSLATIONS via merge amb fallback a IT
 - Funció `t(key, lang_code, **kwargs)`: retorna la traducció, amb fallback a IT i finalment a la clau
 - L'idioma s'emmagatzema a `app-store["lc"]` i es canvia des del selector del sidebar
+
+**Cobertura de les claus noves (sessions 6–7d):**
+| Clau grup | IT | DE | FR | EN | CA | ES/PT/SQ/SR/TR/RM |
+|---|---|---|---|---|---|---|
+| `home_*` (14 claus) | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ fallback IT |
+| `sim_*` (13 claus simulador risc) | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ fallback IT |
+| `vita_fase_*` (4 labels + prioritats) | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ fallback IT |
+| `rac_prod/mot_giuridica/hausrat` | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ fallback IT |
+| Resta claus (`adv_*`, `rie_*`, `vita_*`…) | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ fallback IT |
 
 **Categories de claus:**
 - `app_*`: títol, subtítol, footer
@@ -691,9 +708,9 @@ python3 dash_app.py
 
 ## 🔮 Possibles millores futures
 
-- **Informe PDF de reunió** — exportar gràfics Plotly + recomanacions + notes en PDF professional (sol·licitat, pendent d'implementació)
 - Integració amb Google Calendar per a les cites
 - Enviament d'emails via SendGrid (evita restriccions SMTP en producció)
 - Mapa interactiu dels events de networking (Plotly Mapbox)
 - Autenticació multi-usuari (per si SVAG vol que altres assessors usin l'eina)
 - Mode offline / PWA per usar sense connexió durant les reunions
+- Traduccions completes per als 6 idiomes restants (ES, PT, SQ, SR, TR, RM) — ara fan fallback a IT per les claus noves
