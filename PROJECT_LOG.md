@@ -1,7 +1,83 @@
 # AlexFin — Project Log & Documentació Tècnica
-> Última actualització: 2026-04-23 (sessió 7d)  
+> Última actualització: 2026-04-30  
 > Mantenidora: Gemma Gardela  
 > Client: Alex Bevilacqua, Assessor Financer SVAG (Canton Ticino, Suïssa)
+
+---
+
+## 📊 Estat actual del projecte (2026-04-30)
+
+### ✅ Fet i tancat
+
+| Àrea | Detall | Sessió |
+|---|---|---|
+| **Migració Streamlit → Dash** | MPA complet, sidebar global, auth Flask, deploy Render | 1–2 |
+| **Auth + deploy** | Login Flask, variables d'entorn, `render.yaml`, Gunicorn, `runtime.txt` | 3, 6b |
+| **Sidebar i18n temps real** | 18 Outputs, dropdowns i marks traduïts sense reload | 3 |
+| **PDF reunió** | `pdf_report.py` amb fpdf2: perfil, KPIs, gràfic, recomanacions. Sense notes (privades) | 4 |
+| **CRM demo** | 6 clients a `clienti.json` (5 chiusi + 1 da_chiudere) | 4 |
+| **i18n pàgines complet** | +60 claus `_EXTRA`: advisor, budget, assegurances, prospecting, home | 6 |
+| **Persistència dades client** | `dcc.Location` + `prevent_initial_call=True` + `sync_sidebar_from_store` — sense loops | 7 |
+| **CRM Load client** | Botó "📂 Carica profilo" (pattern-matching) → `crm-load-store` → sidebar | 7 |
+| **Simulador riscos** | 3 escenaris suïssos 2026: Malattia/Invalidità/ALV. Gràfic àrea + KPIs + info box | 7 |
+| **Budget persistent** | `budget-store` (session) → restaurat al tornar a la pàgina | 7 |
+| **KK preus 2026** | 26 cantons amb noms oficials, font BAG/comparis.ch. Rang CHF 352–591/adult | 7b |
+| **Productes nous** | ⚖️ Protezione Giuridica + 🏠 Hausrat — motor recomanació + i18n IT/DE/FR/EN/CA | 7c |
+| **Fasi di vita** | Auto-detecció, costos 2026 reals (CHF 4.409–10.430/mes), prioritats 7×5, cost/persona | 7c |
+| **Traduccions CA completes** | vita_fase_*, rac_prod/mot_giuridica/hausrat — audit final 12/12 ✅ | 7d |
+
+### 🔢 Mètriques actuals del codi
+
+| Fitxer | Línies | Estat |
+|---|---|---|
+| `dash_app.py` | 640 | ✅ compila |
+| `dash_pages/advisor.py` | 823 | ✅ compila |
+| `dash_pages/vida_budget.py` | 611 | ✅ compila |
+| `dash_pages/assegurances.py` | 628 | ✅ compila |
+| `dash_pages/prospecting.py` | 683 | ✅ compila |
+| `dash_pages/home.py` | 125 | ✅ compila |
+| `products.py` | 590 | ✅ compila |
+| `i18n.py` | 2.392 | ✅ compila |
+
+**Productes SVAG:** 8 (vita, invalidità, perdita guadagno, infortuni, RC privata, protezione giuridica, hausrat, complementare ospedaliera)  
+**Cantons KK:** 26 · Rang adult CHF 352 (Appenzell AI) → 591 (Genève)  
+**Motor recomanació:** 8 productes recomanats en perfil típic (dipendente, 38a, fills, hipoteca)
+
+### 🌍 Cobertura i18n (326 claus totals)
+
+| Idioma | Traduïdes | Fallback IT | Observacions |
+|---|---|---|---|
+| **IT** | 326/326 ✅ | — | Referència |
+| **FR** | 325/326 ✅ | 1 (`sidebar_sesso_opt`) | Pràcticament complet |
+| **DE** | 319/326 ✅ | 7 | `sidebar_sesso_opt`, `tab_kk`, `prosp_title/tab_events`, `temi_kk`, `home_mod_advisor/prosp_title` |
+| **EN** | 315/326 ✅ | 11 | `sidebar_sesso_opt`, `prosp_*` (5 claus), `vita_target`, `sim_scenario_lbl`, `home_mod_*` |
+| **CA** | 251/326 ✅ | 75 | Claus noves traduïdes; claus base de `TRANSLATIONS` principals en italià |
+| **ES/PT/SQ/SR/TR/RM** | ~220/326 | ~106 | Fallback IT per totes les claus `_EXTRA` |
+
+### ⏳ Pendent / Possibles millores
+
+| Prioritat | Tasca | Fitxer(s) |
+|---|---|---|
+| 🔴 | Corregir 7 fallbacks DE/FR/EN en `TRANSLATIONS` principal (`sidebar_sesso_opt`, `tab_kk`, `prosp_*`, `vita_target`, `home_mod_*`) | `i18n.py` |
+| 🟡 | Completar traduccions CA de les ~75 claus base que fallen back a IT | `i18n.py` |
+| 🟡 | Revisar `assegurances.py` — el simulador 3r pilar és l'antic (what-if), podria alinear-se amb el nou enfoc de riscos | `dash_pages/assegurances.py` |
+| 🟢 | Deploy a Render.com i prova en producció amb Alex | `render.yaml` |
+| 🟢 | Afegir missatge "no hi ha clients" al CRM si `clienti.json` buit | `dash_pages/advisor.py` |
+| 🟢 | Integració Google Calendar per a cites | nou fitxer |
+| 🟢 | Enviament SMTP via SendGrid (producció) | `dash_pages/prospecting.py` |
+| 🟢 | Traduccions ES/PT/SQ/SR/TR/RM per a claus `_EXTRA` | `i18n.py` |
+
+### 🏗️ Decisions tècniques adoptades
+
+| Decisió | Racional |
+|---|---|
+| `prevent_initial_call=True` a `update_store` | Evita que el sidebar sobreescrigui `app-store` en cada navegació |
+| `dcc.Location` com a trigger de `sync_sidebar_from_store` | Trenca el loop infinit — store changes no re-disparen sidebar sync |
+| `crm-load-store` (memory) separat de `app-store` | Cleared en tancar tab; distingeix trigger "CRM load" de "navegació normal" |
+| `budget-store` (session) separat | Budget és dada local de la pàgina, no part del perfil global del client |
+| Noms cantons oficials a `KK_PREMI_CANTON` | Coincideix amb sidebar default `"Zürich"` i evita KeyError silenciós |
+| `_EXTRA` merge amb fallback IT | Permet afegir claus noves sense trencar idiomes no traduïts |
+| fpdf2 (pure Python) per al PDF | Sense dependències de sistema → compatible Render.com Free tier |
 
 ---
 
