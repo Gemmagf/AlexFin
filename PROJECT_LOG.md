@@ -25,6 +25,7 @@
 | **Productes nous** | ⚖️ Protezione Giuridica + 🏠 Hausrat — motor recomanació + i18n IT/DE/FR/EN/CA | 7c |
 | **Fasi di vita** | Auto-detecció, costos 2026 reals (CHF 4.409–10.430/mes), prioritats 7×5, cost/persona | 7c |
 | **Traduccions CA completes** | vita_fase_*, rac_prod/mot_giuridica/hausrat — audit final 12/12 ✅ | 7d |
+| **CRM standalone** | `crm_app.py` — app Dash independent (port 8051), 4 vistes, model dades estès | 8 |
 
 ### 🔢 Mètriques actuals del codi
 
@@ -62,7 +63,7 @@
 | 🟡 | Completar traduccions CA de les ~75 claus base que fallen back a IT | `i18n.py` |
 | 🟡 | Revisar `assegurances.py` — el simulador 3r pilar és l'antic (what-if), podria alinear-se amb el nou enfoc de riscos | `dash_pages/assegurances.py` |
 | 🟢 | Deploy a Render.com i prova en producció amb Alex | `render.yaml` |
-| 🟢 | Afegir missatge "no hi ha clients" al CRM si `clienti.json` buit | `dash_pages/advisor.py` |
+| ~~🟢~~ | ~~Afegir missatge "no hi ha clients" al CRM si `clienti.json` buit~~ | ✅ Fet al CRM standalone |
 | 🟢 | Integració Google Calendar per a cites | nou fitxer |
 | 🟢 | Enviament SMTP via SendGrid (producció) | `dash_pages/prospecting.py` |
 | 🟢 | Traduccions ES/PT/SQ/SR/TR/RM per a claus `_EXTRA` | `i18n.py` |
@@ -779,6 +780,43 @@ python3 dash_app.py
 # → http://localhost:8050
 # Login: alex / svag2026 (defecte dev)
 ```
+
+---
+
+## 📋 Changelog — Sessió 8 (2026-04-30) — CRM standalone independent
+
+### CRM standalone — `crm_app.py` ✅
+**Objectiu:** CRM usable de forma autònoma, sense obrir el dashboard d'assessoria.
+
+**Execució:** `python3 crm_app.py` → [http://localhost:8051](http://localhost:8051) · Login: `alex / svag2026`
+
+**Model de dades estès** (backward compatible amb `clienti.json`):
+- Nous camps: `telefono`, `email`, `pipeline_stage`, `data_primo_contatto`, `data_prossimo_followup`, `valore_stimato`
+- 6 etapes pipeline: Lead → Contattato → Riunione → Proposta → Chiuso ✅ → Perso ❌
+- `_default()` assegura que clients antics del dashboard funcionin sense errors
+
+**4 vistes (navbar superior):**
+
+| Vista | Contingut |
+|---|---|
+| 📊 Dashboard | 6 KPIs, funnel pipeline, follow-ups de la setmana, últims 5 clients |
+| 👥 Clienti | Taula filtrable (cerca text + fase + cantó), editar i eliminar |
+| 📋 Pipeline | Kanban 6 columnes amb valor CHF per etapa |
+| 📅 Agenda | Follow-ups prioritzats: escaduts 🔴 / avui 🟡 / setmana 🔵 / pendent ⬜ |
+
+**Modal add/edit complet:**
+- Dades anagràfiques: nom, edat, sexe, telèfon, email, cantó, idioma, reddito
+- Situació laboral, estat civil, fills, hipoteca, tolerància al risc
+- Pipeline: fase, data contacte, data follow-up, valor estimat CHF/any, producte contractat
+- Notes lliures
+
+**Altres:**
+- Eliminació client amb confirmació modal
+- Refresh automàtic cada 30 seg (`dcc.Interval`)
+- CSS independent (`crm_assets/crm.css`) — no interfereix amb el dashboard principal
+- `assets_folder="crm_assets"` → cap conflicte de CSS entre apps
+
+**Fitxers nous:** `crm_app.py`, `crm_assets/crm.css`
 
 ---
 
