@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*, body, html { font-family: 'Inter', sans-serif !important; box-sizing: border-box; }
+body { background: #f0f2f7; margin: 0; }
+
+/* ── Navbar ──────────────────────────────────────── */
+.crm-navbar {
+  background: linear-gradient(90deg, #1e2235 0%, #151929 100%);
+  height: 54px; display: flex; align-items: center; padding: 0 24px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.28); gap: 16px;
+}
+.crm-logo { font-size: 1.25rem; font-weight: 800; color: #fff; }
+.crm-logo span { color: #c0392b; }
+.crm-badge {
+  background: #c0392b; color: #fff; font-size: 0.6rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px; letter-spacing: 0.1em;
+}
+.crm-nav-link {
+  color: rgba(255,255,255,0.65) !important; font-size: 0.84rem; font-weight: 600;
+  padding: 6px 13px; border-radius: 8px; cursor: pointer; transition: all .18s;
+  text-decoration: none !important; border: none; background: none;
+}
+.crm-nav-link:hover { color: #fff !important; background: rgba(255,255,255,0.12) !important; }
+.crm-logout {
+  margin-left: auto; color: rgba(255,255,255,0.5) !important;
+  font-size: 0.8rem; font-weight: 600; text-decoration: none;
+  padding: 6px 12px; border-radius: 8px; transition: all .18s;
+}
+.crm-logout:hover { color: #fff !important; background: rgba(255,255,255,0.1) !important; }
+
+/* ── Page wrapper ────────────────────────────────── */
+.crm-page { padding: 82px 32px 48px; max-width: 1400px; margin: 0 auto; }
+
+/* Page heading */
+.page-title { font-size: 1.55rem; font-weight: 800; color: #1e2235; margin-bottom: 2px; }
+.page-caption { font-size: 0.87rem; color: #888; margin-bottom: 18px; }
+
+/* ── KPI cards ───────────────────────────────────── */
+.kpi-card {
+  background: white; border-radius: 16px; padding: 20px 22px;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.06); border: 1px solid #eaecf2; height: 100%;
+}
+.kpi-label {
+  font-size: 0.68rem; font-weight: 700; color: #999;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+}
+.kpi-value { font-size: 1.8rem; font-weight: 800; color: #1e2235; line-height: 1.1; }
+.kpi-value.red    { color: #e74c3c; }
+.kpi-value.green  { color: #27ae60; }
+.kpi-value.blue   { color: #3b82f6; }
+.kpi-value.orange { color: #f39c12; }
+.kpi-delta { font-size: 0.75rem; color: #aaa; margin-top: 5px; }
+
+/* ── Content card ────────────────────────────────── */
+.c-card {
+  background: white; border-radius: 16px; padding: 22px 26px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.05); border: 1px solid #eaecf2; margin-bottom: 22px;
+}
+.c-card-title { font-size: 1rem; font-weight: 700; color: #1e2235; margin-bottom: 16px; }
+
+/* ── Kanban ──────────────────────────────────────── */
+.kanban-col {
+  background: #f8f9fb; border-radius: 14px; padding: 14px;
+  min-height: 320px; border: 1px solid #eaecf2;
+}
+.kanban-col-title {
+  font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 2px solid; display: block;
+}
+.kanban-card {
+  background: white; border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  border: 1px solid #eaecf2; cursor: pointer; transition: box-shadow .18s;
+}
+.kanban-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+.kanban-card-name { font-size: 0.9rem; font-weight: 700; color: #1e2235; margin-bottom: 3px; }
+.kanban-card-sub  { font-size: 0.75rem; color: #888; }
+
+/* ── Client table ────────────────────────────────── */
+.crm-table { width: 100%; border-collapse: collapse; }
+.crm-table th {
+  font-size: 0.7rem; font-weight: 700; color: #999; text-transform: uppercase;
+  letter-spacing: 0.07em; padding: 10px 12px; border-bottom: 2px solid #eaecf2;
+  background: #fafbfc; white-space: nowrap;
+}
+.crm-table td {
+  padding: 11px 12px; border-bottom: 1px solid #f0f2f7;
+  font-size: 0.875rem; color: #1e2235; vertical-align: middle;
+}
+.crm-table tr:hover td { background: #fafbfd; }
+.crm-table tr:last-child td { border-bottom: none; }
+
+/* ── Stage pill ──────────────────────────────────── */
+.stage-pill {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+}
+
+/* ── Agenda item ─────────────────────────────────── */
+.agenda-item {
+  background: white; border-radius: 12px; padding: 14px 18px;
+  margin-bottom: 10px; border: 1px solid #eaecf2; border-left: 4px solid #ccc;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+.agenda-date { font-size: 0.8rem; font-weight: 700; color: #666; min-width: 80px; }
+.agenda-name { font-size: 0.9rem; font-weight: 700; color: #1e2235; }
+.agenda-sub  { font-size: 0.78rem; color: #888; margin-top: 2px; }
+
+/* ── Modal ───────────────────────────────────────── */
+.modal-header { background: #1e2235; color: white; border-radius: 12px 12px 0 0; }
+.modal-header .btn-close { filter: invert(1); }
+
+/* ── Form ────────────────────────────────────────── */
+.crm-form-label {
+  font-size: 0.75rem; font-weight: 700; color: #666;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block;
+}
+.form-control, .form-select {
+  border: 1px solid #e0e3ec; border-radius: 8px;
+  font-size: 0.88rem; color: #1e2235; padding: 8px 12px;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #c0392b; box-shadow: 0 0 0 2px rgba(192,57,43,0.15);
+  outline: none;
+}
+textarea.form-control { min-height: 90px; resize: vertical; }
+.btn-crm-primary { background: #c0392b !important; border-color: #c0392b !important; font-weight: 700; color: #fff !important; }
+.btn-crm-primary:hover { background: #a93226 !important; border-color: #a93226 !important; }
