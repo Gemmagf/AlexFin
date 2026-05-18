@@ -3,7 +3,7 @@ services:
     name: alexfin-advisor
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn dash_app:server --workers 1 --timeout 120
+    startCommand: gunicorn crm_app:server --workers 1 --timeout 120
     plan: free
     branch: upgrade-streamlit-app
     envVars:

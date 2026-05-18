@@ -1,4 +1,5 @@
-# AlexFin — Python dependencies
+# AlexFin CRM — Python dependencies
+
 # Dash stack
 dash==4.1.0
 dash-bootstrap-components==2.0.4
@@ -12,7 +13,7 @@ numpy>=1.26.0
 Pillow>=10.0.0
 
 # PDF generation (meeting report)
-fpdf2>=2.7.9
+reportlab>=4.0.0
 
 # Production server
 gunicorn>=21.2.0

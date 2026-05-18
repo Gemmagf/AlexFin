@@ -1,5 +1,5 @@
 """
-AlexFin CRM — App standalone per a Alex Bevilacqua (SVAG)
+AlexFin CRM — App standalone per a Alex Bevilacqua
 Execució:  /usr/bin/python3 crm_app.py
 URL:       http://localhost:8051  ·  Login: alex / go
 
@@ -9,7 +9,7 @@ Bugs corregits vs v1:
   - Modal no es tancava al guardar → fix allow_duplicate
   - Afegit i18n complet: IT / DE / FR / EN / CA
 """
-import os, json
+import os, json, io, base64
 from datetime import date, timedelta
 import dash, dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, State, callback, ctx, ALL
@@ -38,61 +38,137 @@ CANTONS = ["Zürich","Bern","Luzern","Uri","Schwyz","Obwalden","Nidwalden","Glar
 
 # ── CATALOGO PRODOTTI ─────────────────────────────────────────────────────────
 PRODUCTS = [
-  {"id":"3p","icon":"🏦",
+  {"id":"3p","icon":"3P",
    "name":{"it":"3° Pilastro","de":"Säule 3a","fr":"3e Pilier","en":"3rd Pillar","ca":"3r Pilar"},
-   "desc":{"it":"Risparmio previdenziale privato con deducibilità fiscale: CHF 7'056/anno (dipendenti) · CHF 35'280 (indipendenti). L'effetto composto premia chi inizia presto — 30 anni vs 35 anni = capitale 50% maggiore a 65.",
+   "desc":{"it":"Risparmio previdenziale privato con deducibilità fiscale: CHF 7'056/anno (dipendenti) · CHF 35'280 (indipendenti). L'effetto composto premia chi inizia presto.",
            "de":"Private Altersvorsorge mit Steuerabzug: CHF 7'056/Jahr (Angest.) · CHF 35'280 (Selbst.). Frühzeitig anfangen = 50% mehr Kapital dank Zinseszins.",
-           "fr":"Épargne-retraite privée déductible: CHF 7'056/an (salariés) · CHF 35'280 (ind.). Commencer à 30 vs 35 ans = 50% de capital en plus à 65.",
-           "en":"Private pension savings, tax-deductible: CHF 7,056/year (employees) · CHF 35,280 (self-employed). Starting at 30 vs 35 = 50% more capital at 65.",
+           "fr":"Épargne-retraite privée déductible: CHF 7'056/an (salariés) · CHF 35'280 (ind.). Commencer tôt = 50% de capital en plus à 65 ans.",
+           "en":"Private pension savings, tax-deductible: CHF 7,056/year (employees) · CHF 35,280 (self-employed). Start early = 50% more capital at 65.",
            "ca":"Estalvi de previsió deduïble: CHF 7.056/any (assalariats) · CHF 35.280 (autònoms). Iniciar aviat = 50% més capital a 65 anys."},
+   "benefits":{"it":["Deduzione fiscale diretta ogni anno","Effetto composto a lungo termine","Modalità bancaria o assicurativa con copertura vita"],
+               "de":["Direkter Steuerabzug jedes Jahr","Zinseszinseffekt langfristig","Bank- oder Versicherungsmodell mit Lebensschutz"],
+               "fr":["Déduction fiscale directe chaque année","Effet de capitalisation à long terme","Formule bancaire ou assurance avec couverture vie"],
+               "en":["Direct tax deduction each year","Long-term compound growth","Bank or insurance model with life cover"],
+               "ca":["Deducció fiscal directa cada any","Efecte composat a llarg termini","Modalitat bancària o asseguradora amb cobertura vida"]},
+   "exceptions":{"it":["Non adatto a chi ha già raggiunto il massimo deducibile","Liquidità bloccata fino a 65 anni (salvo eccezioni)"],
+                 "de":["Nicht geeignet wenn Abzugsmaximum bereits ausgeschöpft","Kapital gesperrt bis 65 (Ausnahmen möglich)"],
+                 "fr":["Non adapté si plafond de déduction déjà atteint","Liquidités bloquées jusqu'à 65 ans (sauf exceptions)"],
+                 "en":["Not suitable if deduction limit already maxed","Funds locked until 65 (exceptions apply)"],
+                 "ca":["No adequat si ja s'ha assolit el màxim deduïble","Liquiditat bloquejada fins a 65 anys (excepcions possibles)"]},
    "fit": lambda c: c.get("eta",99)<65},
-  {"id":"vita","icon":"💚",
+
+  {"id":"vita","icon":"VT",
    "name":{"it":"Assicurazione Vita","de":"Lebensversicherung","fr":"Assurance Vie","en":"Life Insurance","ca":"Assegurança de Vida"},
    "desc":{"it":"Protezione del reddito familiare in caso di decesso: rischio puro (term life) o risparmio misto. Indispensabile con figli o ipoteca in corso.",
            "de":"Absicherung des Familieneinkommens im Todesfall: Risikovs. oder gemischte Vers. Unerlässlich mit Kindern oder Hypothek.",
            "fr":"Protection du revenu familial au décès: risque pur ou épargne mixte. Indispensable avec enfants ou hypothèque.",
            "en":"Family income protection on death: pure risk (term) or savings component (mixed). Essential with children or mortgage.",
            "ca":"Protecció dels ingressos familiars en defunció: risc pur o mixta. Essencial amb fills o hipoteca."},
+   "benefits":{"it":["Capitale garantito ai beneficiari","Premio fisso per tutta la durata","Componente risparmio opzionale con riscatto garantito"],
+               "de":["Garantiertes Kapital für Begünstigte","Feste Prämie über gesamte Laufzeit","Sparkomponente mit garantiertem Rückkauf optional"],
+               "fr":["Capital garanti aux bénéficiaires","Prime fixe sur toute la durée","Composante épargne avec rachat garanti (optionnel)"],
+               "en":["Guaranteed capital to beneficiaries","Fixed premium throughout","Optional savings component with guaranteed surrender value"],
+               "ca":["Capital garantit als beneficiaris","Prima fixa durant tota la durada","Component estalvi amb rescat garantit (opcional)"]},
+   "exceptions":{"it":["Meno urgente per single senza carichi e senza ipoteca","Costo più alto per età avanzata o fumatori"],
+                 "de":["Weniger dringend für Singles ohne Abhängige und Hypothek","Höhere Kosten bei fortgeschrittenem Alter oder Raucher"],
+                 "fr":["Moins urgent pour célibataires sans charges ni hypothèque","Coût plus élevé à âge avancé ou fumeurs"],
+                 "en":["Less urgent for singles with no dependants or mortgage","Higher cost for older age or smokers"],
+                 "ca":["Menys urgent per a solters sense càrregues ni hipoteca","Cost més alt a edat avançada o fumadors"]},
    "fit": lambda c: bool(c.get("figli")) or bool(c.get("ipoteca"))},
-  {"id":"ai","icon":"🛡️",
+
+  {"id":"ai","icon":"AI",
    "name":{"it":"Assicurazione Invalidità","de":"Erwerbsunfähigkeitsvers.","fr":"Assurance Invalidité","en":"Disability Insurance","ca":"Assegurança Invalidesa"},
    "desc":{"it":"Integra l'AI statale per mantenere il tenore di vita in caso di incapacità parziale o totale. Critica per indipendenti: nessuna copertura automatica.",
            "de":"Ergänzt staatliche IV bei Erwerbsunfähigkeit. Für Selbstständige kritisch — keine automatische Absicherung.",
            "fr":"Complète l'AI étatique en cas d'incapacité. Critique pour les indépendants (pas de couverture automatique).",
            "en":"Supplements state disability insurance. Critical for self-employed — no automatic coverage.",
            "ca":"Complementa l'AI estatal en cas d'incapacitat. Crític per a autònoms (cap cobertura automàtica)."},
+   "benefits":{"it":["Mantieni il 80-90% del reddito in caso di infortunio o malattia","Copertura parziale (50-100%) configurabile","Priorità assoluta per indipendenti senza protezione automatica"],
+               "de":["80-90% Einkommenserhalt bei Unfall oder Krankheit","Teilinvalidität (50-100%) konfigurierbar","Absolute Priorität für Selbstständige ohne Automatikschutz"],
+               "fr":["Maintien de 80-90% du revenu en cas d'accident ou maladie","Invalidité partielle (50-100%) configurable","Priorité absolue pour indépendants sans protection automatique"],
+               "en":["Maintain 80-90% of income in case of accident or illness","Partial disability (50-100%) configurable","Absolute priority for self-employed without automatic cover"],
+               "ca":["Mantenir el 80-90% dels ingressos en cas d'accident o malaltia","Invalidesa parcial (50-100%) configurable","Prioritat absoluta per a autònoms sense protecció automàtica"]},
+   "exceptions":{"it":["Meno critica se il datore di lavoro ha già copertura collettiva sufficiente","Escluse malattie preesistenti (verificare con assicuratore)"],
+                 "de":["Weniger kritisch wenn Arbeitgeber bereits ausreichende Kollektivdeckung hat","Vorerkrankungen ausgeschlossen (mit Versicherer prüfen)"],
+                 "fr":["Moins critique si l'employeur a déjà une couverture collective suffisante","Maladies préexistantes exclues (vérifier avec assureur)"],
+                 "en":["Less critical if employer already has sufficient group cover","Pre-existing conditions excluded (check with insurer)"],
+                 "ca":["Menys crític si l'empresari ja té cobertura col·lectiva suficient","Malalties preexistents excloses (verificar amb assegurador)"]},
    "fit": lambda c: c.get("situazione") in ["Dipendente","Indipendente"]},
-  {"id":"ipoteca","icon":"🏠",
+
+  {"id":"ipoteca","icon":"IP",
    "name":{"it":"Pianificazione Ipotecaria","de":"Hypothekenplanung","fr":"Planification Hypothécaire","en":"Mortgage Planning","ca":"Planificació Hipotecària"},
    "desc":{"it":"Strutturazione del finanziamento: fisso vs SARON, amortamento indiretto via 3° pilastro (doppio vantaggio fiscale), negoziazione con più banche.",
            "de":"Finanzierungsstruktur: fest vs. SARON, indirekte Amortisation über Säule 3a (doppelter Steuerbonus), Vergleich mehrerer Banken.",
            "fr":"Structure de financement: fixe vs SARON, amortissement indirect via 3e pilier (double avantage fiscal), comparaison de banques.",
            "en":"Financing structure: fixed vs SARON, indirect amortization via pillar 3a (double tax benefit), comparing banks.",
            "ca":"Estructura de finançament: fix vs SARON, amortització indirecta via 3r pilar (doble avantatge fiscal)."},
+   "benefits":{"it":["Interessi ipotecari deducibili dalle imposte","Amortamento indiretto via 3° pilastro: doppio vantaggio fiscale","Comparazione tra banche per ottenere il miglior tasso"],
+               "de":["Hypothekarzinsen steuerlich abzugsfähig","Indirekte Amortisation über 3a: doppelter Steuervorteil","Bankvergleich für besten Zinssatz"],
+               "fr":["Intérêts hypothécaires déductibles des impôts","Amortissement indirect via 3e pilier: double avantage fiscal","Comparaison bancaire pour obtenir le meilleur taux"],
+               "en":["Mortgage interest tax-deductible","Indirect amortization via 3rd pillar: double tax benefit","Bank comparison to get the best rate"],
+               "ca":["Interessos hipotecaris deduïbles dels impostos","Amortització indirecta via 3r pilar: doble avantatge fiscal","Comparació entre bancs per obtenir el millor tipus"]},
+   "exceptions":{"it":["Non applicabile a chi non prevede acquisto immobile","SARON sconsigliato a bassa tolleranza al rischio"],
+                 "de":["Nicht anwendbar ohne geplanten Immobilienkauf","SARON nicht empfohlen bei geringer Risikotoleranz"],
+                 "fr":["Non applicable sans achat immobilier prévu","SARON déconseillé avec faible tolérance au risque"],
+                 "en":["Not applicable without planned property purchase","SARON not recommended for low risk tolerance"],
+                 "ca":["No aplicable sense compra d'immoble prevista","SARON no recomanat amb baixa tolerància al risc"]},
    "fit": lambda c: bool(c.get("ipoteca")) or c.get("eta",99)<55},
-  {"id":"lpp","icon":"🏢",
+
+  {"id":"lpp","icon":"LP",
    "name":{"it":"Ottimizzazione LPP","de":"BVG-Optimierung","fr":"Optimisation LPP","en":"Pension Fund Optim.","ca":"Optimització LPP"},
    "desc":{"it":"Acquisti volontari nella cassa pensione (deducibili): massimizza il capitale e riduce le tasse oggi. Riscatto anticipato per immobile. Rendita vs. capitale.",
            "de":"Freiwillige PK-Einkäufe (steuerabzugsfähig): Kapital maximieren, Steuern senken. Vorbezug für Wohneigentum. Renten- vs. Kapitalplanung.",
            "fr":"Rachats volontaires dans la CP (déductibles): maximiser le capital, réduire les impôts. Retrait anticipé pour logement.",
            "en":"Voluntary pension fund purchases (tax-deductible): maximize capital, reduce taxes. Early withdrawal for property.",
            "ca":"Compres voluntàries a la CP (deduïbles): maximitzar capital i reduir impostos. Retir anticipat per immoble."},
+   "benefits":{"it":["Deducibile senza limite massimo (a differenza del 3° pilastro)","Rendimento CP garantito ~2-3%/anno","Riscatto anticipato possibile per acquisto abitazione"],
+               "de":["Abzugsfähig ohne Höchstbetrag (anders als 3. Säule)","Garantierte PK-Rendite ~2-3%/Jahr","Vorbezug für Wohneigentumserwerb möglich"],
+               "fr":["Déductible sans plafond maximum (contrairement au 3e pilier)","Rendement CP garanti ~2-3%/an","Retrait anticipé possible pour achat logement"],
+               "en":["Deductible without maximum cap (unlike 3rd pillar)","Guaranteed pension fund return ~2-3%/year","Early withdrawal possible for property purchase"],
+               "ca":["Deduïble sense límit màxim (a diferència del 3r pilar)","Rendiment CP garantit ~2-3%/any","Retir anticipat possible per a compra d'habitatge"]},
+   "exceptions":{"it":["Solo per dipendenti (non per indipendenti senza cassa pensione)","Lacuna CP deve essere verificata con estratto conto ufficiale"],
+                 "de":["Nur für Angestellte (nicht für Selbstständige ohne PK)","PK-Lücke muss mit offiziellem Kontoauszug geprüft werden"],
+                 "fr":["Uniquement pour salariés (pas pour indépendants sans CP)","Lacune CP à vérifier avec relevé officiel"],
+                 "en":["Only for employees (not self-employed without pension fund)","Pension fund gap must be verified with official statement"],
+                 "ca":["Només per a assalariats (no per a autònoms sense CP)","La llacuna CP s'ha de verificar amb l'extracte oficial"]},
    "fit": lambda c: c.get("situazione")=="Dipendente" and c.get("eta",0)>25},
-  {"id":"hausrat","icon":"🏡",
+
+  {"id":"hausrat","icon":"HR",
    "name":{"it":"Hausrat + RC Privata","de":"Hausrat + Privathaftpflicht","fr":"Ménage + RC Privée","en":"Household + Liability","ca":"Llar + RC Privada"},
    "desc":{"it":"Assicurazione economica domestica (furto, incendio, danni acqua) + responsabilità civile privata. Pacchetto base essenziale per tutti. Premi CHF 150-350/anno.",
            "de":"Hausrat (Diebstahl, Brand, Wasser) + Privathaftpflicht. Basispaket für alle. Prämien CHF 150-350/Jahr.",
            "fr":"Ménage (vol, incendie, eau) + RC privée. Paquet de base pour tous. Primes CHF 150-350/an.",
            "en":"Household (theft, fire, water) + private liability. Essential for all. Premiums CHF 150-350/year.",
            "ca":"Llar (robatori, incendi, aigua) + RC privada. Bàsic per a tothom. Primes CHF 150-350/any."},
+   "benefits":{"it":["Copertura furto, incendio, allagamento a premi molto bassi","RC privata: copre danni involontari a terzi (CHF 3-5M)","Spesso combinabile con assicurazione malattia per sconti"],
+               "de":["Diebstahl-, Brand-, Wasserschadendeckung zu sehr günstigen Prämien","Privat-HP: deckt unbeabsichtigte Drittschäden (CHF 3-5M)","Oft kombinierbar mit Krankenkasse für Rabatte"],
+               "fr":["Couverture vol, incendie, dégâts eau à primes très basses","RC privée: couvre dommages involontaires à tiers (CHF 3-5M)","Souvent combinable avec assurance maladie pour réductions"],
+               "en":["Theft, fire, water damage cover at very low premiums","Private liability: covers involuntary third-party damage (CHF 3-5M)","Often combinable with health insurance for discounts"],
+               "ca":["Cobertura robatori, incendi, inundació a primes molt baixes","RC privada: cobreix danys involuntaris a tercers (CHF 3-5M)","Sovint combinable amb l'assegurança mèdica per a descomptes"]},
+   "exceptions":{"it":["Oggetti di valore elevato (gioielli, arte) richiedono polizza separata","Veicoli non coperti (servono polizze auto specifiche)"],
+                 "de":["Wertgegenstände (Schmuck, Kunst) benötigen separate Police","Fahrzeuge nicht gedeckt (separate KFZ-Police erforderlich)"],
+                 "fr":["Objets de valeur élevée (bijoux, art) nécessitent police séparée","Véhicules non couverts (polices auto spécifiques requises)"],
+                 "en":["High-value items (jewellery, art) require separate policy","Vehicles not covered (specific motor policies needed)"],
+                 "ca":["Articles de valor elevat (joies, art) requereixen pòlissa separada","Vehicles no coberts (pòlisses d'auto específiques necessàries)"]},
    "fit": lambda c: True},
-  {"id":"malattia","icon":"🏥",
+
+  {"id":"malattia","icon":"KK",
    "name":{"it":"Ottimizzazione Cassa Malati","de":"Krankenkassen-Optim.","fr":"Optim. Assur. Maladie","en":"Health Insurance Optim.","ca":"Optim. Assegurança Mèdica"},
    "desc":{"it":"Revisione modello LAMal (HMO/Telmed/standard) + franchigia ottimale. Risparmio medio CHF 300-800/anno mantenendo la copertura adeguata.",
            "de":"KVG-Modell (HMO/Telmed/standard) + optimale Franchise. Durchschnittliche Ersparnis CHF 300-800/Jahr.",
            "fr":"Modèle LAMal (HMO/Telmed/standard) + franchise optimale. Économie moyenne CHF 300-800/an.",
            "en":"LAMal model (HMO/Telmed/standard) + optimal deductible. Average savings CHF 300-800/year.",
            "ca":"Model LAMal (HMO/Telmed/standard) + franquícia òptima. Estalvi mitjà CHF 300-800/any."},
+   "benefits":{"it":["Risparmio immediato CHF 300-800/anno ottimizzando modello e franchigia","Cambio gratuito ogni anno (entro ottobre)","LCA complementare: dentista, occhiali, medicine alternative"],
+               "de":["Sofortige Ersparnis CHF 300-800/Jahr durch Modell- und Franchiseoptimierung","Kostenloser Wechsel jedes Jahr (bis Oktober)","LCA-Zusatz: Zahnarzt, Brillen, Alternativmedizin"],
+               "fr":["Économie immédiate CHF 300-800/an en optimisant modèle et franchise","Changement gratuit chaque année (avant octobre)","LCA complémentaire: dentiste, lunettes, médecine alternative"],
+               "en":["Immediate savings CHF 300-800/year by optimising model and deductible","Free switch every year (by October)","LCA supplement: dentist, glasses, alternative medicine"],
+               "ca":["Estalvi immediat CHF 300-800/any optimitzant model i franquícia","Canvi gratuït cada any (fins a l'octubre)","LCA complementari: dentista, ulleres, medicina alternativa"]},
+   "exceptions":{"it":["Franchigia alta sconsigliata se uso medico frequente (es. malattia cronica)","Modello HMO limita la libera scelta del medico"],
+                 "de":["Hohe Franchise nicht empfohlen bei häufigem Arztbesuch (z.B. chronische Erkrankung)","HMO-Modell schränkt freie Arztwahl ein"],
+                 "fr":["Franchise élevée déconseillée si recours médical fréquent (ex. maladie chronique)","Modèle HMO limite le libre choix du médecin"],
+                 "en":["High deductible not recommended for frequent medical use (e.g. chronic illness)","HMO model limits free choice of doctor"],
+                 "ca":["Franquícia alta no recomanada si hi ha ús mèdic freqüent (ex. malaltia crònica)","El model HMO limita la lliure elecció de metge"]},
    "fit": lambda c: True},
 ]
 
@@ -177,7 +253,11 @@ _T = {
     "f_valore":       {"it":"Valore stimato CHF/anno","de":"Geschätzter Wert CHF/J","fr":"Valeur estimée CHF/an","en":"Est. value CHF/year","ca":"Valor estimat CHF/any"},
     "f_data1":        {"it":"Data primo contatto","de":"Datum Erstkontakt","fr":"Date 1er contact","en":"First contact date","ca":"Data primer contacte"},
     "f_followup":     {"it":"Prossimo follow-up","de":"Nächstes Follow-up","fr":"Prochain suivi","en":"Next follow-up","ca":"Proper seguiment"},
-    "f_prodotto":     {"it":"Prodotto contrattato","de":"Vertragsprodukt","fr":"Produit contracté","en":"Contracted product","ca":"Producte contractat"},
+    "f_prodotto":     {"it":"Prodotti selezionati","de":"Ausgewählte Produkte","fr":"Produits sélectionnés","en":"Selected products","ca":"Productes seleccionats"},
+    "f_prodotto_ph":  {"it":"Seleziona prodotti raccomandati…","de":"Empfohlene Produkte wählen…","fr":"Sélectionner produits recommandés…","en":"Select recommended products…","ca":"Selecciona productes recomanats…"},
+    "f_prodotto_rec": {"it":"Raccomandato","de":"Empfohlen","fr":"Recommandé","en":"Recommended","ca":"Recomanat"},
+    "prod_contracted":{"it":"Prodotti selezionati","de":"Ausgewählte Produkte","fr":"Produits sélectionnés","en":"Selected products","ca":"Productes seleccionats"},
+    "prod_none":      {"it":"Nessun prodotto selezionato","de":"Kein Produkt ausgewählt","fr":"Aucun produit sélectionné","en":"No product selected","ca":"Cap producte seleccionat"},
     "f_note_ph":      {"it":"Osservazioni, prossimi passi…","de":"Beobachtungen, nächste Schritte…","fr":"Observations, prochaines étapes…","en":"Observations, next steps…","ca":"Observacions, pròxims passos…"},
     "yes":            {"it":"Sì","de":"Ja","fr":"Oui","en":"Yes","ca":"Sí"},
     "no":             {"it":"No","de":"Nein","fr":"Non","en":"No","ca":"No"},
@@ -217,7 +297,7 @@ _T = {
     "no_change":      {"it":"⚠️ Niente da salvare.","de":"⚠️ Nichts zu speichern.","fr":"⚠️ Rien à enregistrer.","en":"⚠️ Nothing to save.","ca":"⚠️ Res a desar."},
     # Productes
     "prod_title":     {"it":"📦 Catalogo Prodotti","de":"📦 Produktkatalog","fr":"📦 Catalogue Produits","en":"📦 Product Catalogue","ca":"📦 Catàleg de Productes"},
-    "prod_sub":       {"it":"Soluzioni finanziarie proposte da SVAG","de":"Finanzlösungen von SVAG","fr":"Solutions financières SVAG","en":"Financial solutions by SVAG","ca":"Solucions financeres de SVAG"},
+    "prod_sub":       {"it":"Soluzioni finanziarie proposte da Alex Bevilacqua","de":"Finanzlösungen von Alex Bevilacqua","fr":"Solutions financières par Alex Bevilacqua","en":"Financial solutions by Alex Bevilacqua","ca":"Solucions financeres d'Alex Bevilacqua"},
     "prod_clients":   {"it":"clienti","de":"Kunden","fr":"clients","en":"clients","ca":"clients"},
     # Suggeriments
     "sugg_title":     {"it":"💡 Prodotti consigliati","de":"💡 Empfohlene Produkte","fr":"💡 Produits conseillés","en":"💡 Recommended products","ca":"💡 Productes recomanats"},
@@ -260,15 +340,36 @@ def yn_opts(lc):
     return [{"label":ct("no",lc),"value":"No"},{"label":ct("yes",lc),"value":"Si"}]
 
 # ── DATA LAYER ───────────────────────────────────────────────────────────────
+def _get_prodotti_sel(c):
+    """Retorna llista d'IDs de productes seleccionats — amb retrocompat."""
+    sel = c.get("prodotti_sel")
+    if isinstance(sel, list):
+        return sel
+    # Retrocompat: intentar llegir del camp de text antic
+    txt = (c.get("prodotto_contrattato","") or "").lower()
+    if not txt:
+        return []
+    return [p["id"] for p in PRODUCTS if p["id"] in txt]
+
+def _prodotti_display(sel, lc):
+    """Retorna string llegible dels productes seleccionats en l'idioma donat."""
+    lc = lc or "it"
+    names = [p["name"].get(lc, p["name"]["it"]) for p in PRODUCTS if p["id"] in sel]
+    return "  ·  ".join(names) if names else ""
+
 def _default(c):
     defs = {"telefono":"","email":"",
             "pipeline_stage": "chiuso" if c.get("stato")=="chiuso" else "lead",
             "data_primo_contatto": c.get("data_salvataggio",""),
             "data_prossimo_followup":"","valore_stimato":0,
-            "prodotto_contrattato":"","note":"",
+            "prodotti_sel":[],"prodotto_contrattato":"","note":"",
             "notes_log":[],"alerta_motiu":"",
             "data_salvataggio": date.today().isoformat(),"stato":"lead"}
     for k,v in defs.items(): c.setdefault(k,v)
+    # Migrar camp antic → nou si cal
+    if not c["prodotti_sel"] and c.get("prodotto_contrattato"):
+        txt = c["prodotto_contrattato"].lower()
+        c["prodotti_sel"] = [p["id"] for p in PRODUCTS if p["id"] in txt]
     ps = c["pipeline_stage"]
     c["stato"] = "chiuso" if ps=="chiuso" else ("perso" if ps=="perso" else "da_chiudere")
     return c
@@ -323,7 +424,7 @@ button:hover{background:#a93226}
     <label>Password</label><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
     <button type="submit">→ Accedi al CRM</button>
   </form>
-  <div class="footer">Uso professionale riservato · © 2026 SVAG</div>
+  <div class="footer">Uso professionale riservato · © 2026 Alex Bevilacqua</div>
 </div></body></html>"""
 
 @server.route("/login",methods=["GET","POST"])
@@ -414,7 +515,21 @@ def _form(c=None, lc="it"):
         ],className="g-3"),
         dbc.Row([
             _fcol("f_followup",dbc.Input(id="cf-followup",type="date",value=v("data_prossimo_followup","")),w=3,lc=lc),
-            _fcol("f_prodotto",dbc.Input(id="cf-prodotto",value=v("prodotto_contrattato",""),placeholder="Es: 3° Pilastro + KK"),w=9,lc=lc),
+            _fcol("f_prodotto",
+                dcc.Dropdown(
+                    id="cf-prodotto",
+                    multi=True,
+                    value=_get_prodotti_sel(c),
+                    placeholder=ct("f_prodotto_ph",lc),
+                    options=[{
+                        "label": ("★ " if _safe_fit(p,c) else "○ ") + p["name"].get(lc, p["name"]["it"]),
+                        "value": p["id"],
+                        "title": p["desc"].get(lc, p["desc"]["it"])[:80],
+                    } for p in sorted(PRODUCTS, key=lambda p: (not _safe_fit(p,c)))],
+                    style={"fontSize":"0.87rem"},
+                    optionHeight=36,
+                ),
+            w=9,lc=lc),
         ],className="g-3"),
         sec(ct("sec_notes",lc)),
         dbc.Textarea(id="cf-note",value=v("note",""),placeholder=ct("f_note_ph",lc),
@@ -613,7 +728,9 @@ def render_list(cs,lc):
 def update_table(search,stage,canton,_r,lc):
     lc=lc or "it"; cs=load_clients()
     q=(search or "").lower()
-    if q: cs=[c for c in cs if q in c.get("nome","").lower() or q in c.get("email","").lower() or q in c.get("prodotto_contrattato","").lower()]
+    if q: cs=[c for c in cs if q in c.get("nome","").lower() or q in c.get("email","").lower()
+              or any(q in p["name"].get("it","").lower() for p in PRODUCTS if p["id"] in _get_prodotti_sel(c))
+              or q in (c.get("prodotto_contrattato","") or "").lower()]
     if stage:  cs=[c for c in cs if c.get("pipeline_stage")==stage]
     if canton: cs=[c for c in cs if c.get("canton")==canton]
     if not cs: return html.Div(ct("no_clients",lc),style={"color":"#aaa","padding":"32px","textAlign":"center"})
@@ -630,8 +747,17 @@ def update_table(search,stage,canton,_r,lc):
             html.Td(c.get("situazione","—"),style={"color":"#888","fontSize":"0.82rem"}),
             html.Td(f"CHF {c.get('reddito_mensile',0):,}",style={"color":"#888"}),
             html.Td(html.Span(fu_str,style={"color":"#e74c3c","fontWeight":"700"} if is_past else {})),
-            html.Td(c.get("prodotto_contrattato","") or "—",
-                    style={"fontSize":"0.78rem","color":"#888","maxWidth":"160px","overflow":"hidden","textOverflow":"ellipsis","whiteSpace":"nowrap"}),
+            html.Td(
+                html.Div([
+                    html.Span(
+                        next((p["name"].get(lc,p["name"]["it"]) for p in PRODUCTS if p["id"]==pid), pid),
+                        style={"background":"#fde8e8","color":"#c0392b","padding":"2px 7px",
+                               "borderRadius":"20px","fontSize":"0.7rem","fontWeight":"700",
+                               "border":"1px solid #f5c6c0","marginRight":"3px","display":"inline-block",
+                               "marginBottom":"2px"}
+                    ) for pid in _get_prodotti_sel(c)
+                ] or [html.Span("—", style={"color":"#ccc","fontSize":"0.82rem"})]),
+                style={"maxWidth":"200px"}),
             html.Td([dbc.Button("ℹ️",id={"type":"btn-info",  "index":nome},size="sm",color="light",className="me-1 p-1"),
                      dbc.Button("✏️",id={"type":"btn-edit",  "index":nome},size="sm",color="light",className="me-1 p-1"),
                      dbc.Button("🗑️",id={"type":"btn-delete","index":nome},size="sm",color="light",className="p-1")],
@@ -876,14 +1002,21 @@ def _render_info_body(c, lc):
                 row(ct("f_valore",lc),  f"CHF {c.get('valore_stimato',0):,}/any" if c.get("valore_stimato") else "—"),
                 row(ct("f_followup",lc),fu_str,color=fu_color),
                 html.Div(style={"marginTop":"14px"}),
-                html.Div(ct("f_prodotto",lc),
+                html.Div(ct("prod_contracted",lc),
                          style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
                                 "textTransform":"uppercase","letterSpacing":"0.06em","marginBottom":"6px"}),
-                html.Div(c.get("prodotto_contrattato","") or "—",
-                         style={"background":"#fde8e8","color":"#c0392b","padding":"8px 12px",
-                                "borderRadius":"8px","fontSize":"0.88rem","fontWeight":"600",
-                                "border":"1px solid #f5c6c0"} if c.get("prodotto_contrattato") else
-                               {"color":"#aaa","fontSize":"0.88rem"}),
+                # Pills per cada producte seleccionat
+                *([html.Div([
+                    html.Span(
+                        next((p["name"].get(lc,p["name"]["it"]) for p in PRODUCTS if p["id"]==pid), pid),
+                        style={"background":"#fde8e8","color":"#c0392b","padding":"4px 10px",
+                               "borderRadius":"20px","fontSize":"0.78rem","fontWeight":"700",
+                               "border":"1px solid #f5c6c0","marginRight":"6px","marginBottom":"4px",
+                               "display":"inline-block"}
+                    ) for pid in _get_prodotti_sel(c)
+                ], style={"flexWrap":"wrap","display":"flex"})]
+                if _get_prodotti_sel(c) else
+                [html.Div(ct("prod_none",lc), style={"color":"#aaa","fontSize":"0.85rem"})]),
             ],width=7),
         ]),
 
@@ -1041,6 +1174,14 @@ def save(n,edit_nome,nome,eta,sesso,tel,email,canton,lc_c,reddito,situ,sc,figli,
          nfigli,ipot,stage,rischio,valore,data1,followup,prodotto,note,rn,lc):
     lc=lc or "it"
     if not n or not nome: return ct("err_name",lc), dash.no_update, dash.no_update
+    # prodotto ara és una llista d'IDs (dcc.Dropdown multi=True) o None
+    sel = prodotto if isinstance(prodotto, list) else (
+          [p.strip() for p in prodotto.split(",")] if isinstance(prodotto, str) and prodotto else [])
+    # filtra per IDs vàlids
+    valid_ids = {p["id"] for p in PRODUCTS}
+    sel = [x for x in sel if x in valid_ids]
+    # string d'exhibició en italià per retrocompat
+    disp = "  ·  ".join(p["name"]["it"] for p in PRODUCTS if p["id"] in sel)
     e=_default({"nome":nome.strip(),"eta":int(eta or 30),"sesso":sesso or "M",
                 "telefono":tel or "","email":email or "","canton":canton or "Zürich",
                 "lc":lc_c or "it","reddito_mensile":int(reddito or 0),
@@ -1048,7 +1189,8 @@ def save(n,edit_nome,nome,eta,sesso,tel,email,canton,lc_c,reddito,situ,sc,figli,
                 "figli":figli=="Si","n_figli":int(nfigli or 0),"ipoteca":ipot=="Si",
                 "tolleranza_rischio":rischio or "Media","pipeline_stage":stage or "lead",
                 "valore_stimato":int(valore or 0),"data_primo_contatto":data1 or date.today().isoformat(),
-                "data_prossimo_followup":followup or "","prodotto_contrattato":prodotto or "",
+                "data_prossimo_followup":followup or "","prodotti_sel":sel,
+                "prodotto_contrattato":disp,
                 "note":note or "","data_salvataggio":date.today().isoformat()})
     upsert_client(e)
     return ct("saved_ok",lc), (rn or 0)+1, False  # ← tanca modal ✅
@@ -1430,29 +1572,80 @@ def kanban_drop(drop, rn):
     return (rn or 0)+1
 
 # ── TAB 5: PRODUCTES ─────────────────────────────────────────────────────────
+_PROD_LABELS = {
+    "benefits": {"it":"Vantaggi","de":"Vorteile","fr":"Avantages","en":"Benefits","ca":"Avantatges"},
+    "except":   {"it":"Limitazioni / Eccezioni","de":"Einschränkungen","fr":"Limitations","en":"Exceptions","ca":"Limitacions"},
+    "clients":  {"it":"clienti compatibili","de":"kompatible Kunden","fr":"clients compatibles","en":"compatible clients","ca":"clients compatibles"},
+    "active":   {"it":"attivi","de":"aktiv","fr":"actifs","en":"active","ca":"actius"},
+    "detail":   {"it":"Vedi dettaglio","de":"Details","fr":"Voir détail","en":"See detail","ca":"Veure detall"},
+}
+
+def _pl(key, lc): return _PROD_LABELS[key].get(lc, _PROD_LABELS[key]["it"])
+
 def render_products(lc):
-    lc=lc or "it"; cs=load_clients()
-    cards=[]
+    lc = lc or "it"
+    cs = load_clients()
+    cards = []
     for p in PRODUCTS:
-        # Quants clients encaixen + quants ja el tenen
-        n_fit=sum(1 for c in cs if _safe_fit(p,c))
-        prodotto_set={(c.get("prodotto_contrattato","") or "").lower() for c in cs}
-        n_has=sum(1 for c in cs if p["id"] in (c.get("prodotto_contrattato","") or "").lower())
-        name=p["name"].get(lc,p["name"]["it"])
-        desc=p["desc"].get(lc,p["desc"]["it"])
-        cards.append(dbc.Col(html.Div([
-            html.Div([html.Span(p["icon"],style={"fontSize":"2rem","marginRight":"12px"}),
-                      html.Div([html.Div(name,style={"fontWeight":"800","fontSize":"1.05rem","color":"#1e2235"}),
-                                html.Div(f"{n_fit} {ct('prod_clients',lc)} encaixen · {n_has} actuals",
-                                         style={"fontSize":"0.75rem","color":"#888","marginTop":"2px"})]),
-                     ],style={"display":"flex","alignItems":"center","marginBottom":"14px"}),
-            html.Div(desc,style={"fontSize":"0.87rem","color":"#444","lineHeight":"1.65"}),
-        ],className="c-card",style={"height":"100%"}),width=6,className="mb-3"))
+        n_fit = sum(1 for c in cs if _safe_fit(p, c))
+        n_has = sum(1 for c in cs if p["id"] in _get_prodotti_sel(c))
+        name  = p["name"].get(lc, p["name"]["it"])
+        desc  = p["desc"].get(lc, p["desc"]["it"])
+        bens  = p.get("benefits",{}).get(lc, p.get("benefits",{}).get("it",[]))
+        excs  = p.get("exceptions",{}).get(lc, p.get("exceptions",{}).get("it",[]))
+
+        icon_box = html.Div(p["icon"],style={
+            "width":"48px","height":"48px","borderRadius":"12px","flexShrink":"0",
+            "background":"#1e2235","color":"#fff","fontWeight":"800","fontSize":"0.78rem",
+            "display":"flex","alignItems":"center","justifyContent":"center",
+            "letterSpacing":"0.03em","marginRight":"14px",
+        })
+
+        ben_items = [html.Li(b, style={"fontSize":"0.82rem","color":"#2d6a4f","marginBottom":"3px"})
+                     for b in bens]
+        exc_items = [html.Li(e, style={"fontSize":"0.8rem","color":"#c0392b","marginBottom":"3px"})
+                     for e in excs]
+
+        card = html.Div([
+            # Header: icon + nome + stats
+            html.Div([
+                icon_box,
+                html.Div([
+                    html.Div(name, style={"fontWeight":"800","fontSize":"1rem","color":"#1e2235","marginBottom":"2px"}),
+                    html.Div(f"{n_fit} {_pl('clients',lc)}  ·  {n_has} {_pl('active',lc)}",
+                             style={"fontSize":"0.73rem","color":"#aaa"}),
+                ]),
+                dbc.Button(_pl("detail",lc),
+                           id={"type":"btn-prod","index":p["id"]},
+                           color="danger", outline=True, size="sm",
+                           style={"marginLeft":"auto","fontSize":"0.75rem","flexShrink":"0",
+                                  "borderColor":"#c0392b","color":"#c0392b"}),
+            ], style={"display":"flex","alignItems":"center","marginBottom":"12px"}),
+
+            # Descrizione
+            html.Div(desc, style={"fontSize":"0.84rem","color":"#555","lineHeight":"1.6","marginBottom":"12px"}),
+
+            html.Hr(style={"margin":"10px 0","borderColor":"#f0f2f7"}),
+
+            # Vantaggi
+            html.Div(_pl("benefits",lc), style={"fontSize":"0.68rem","fontWeight":"700","color":"#2d6a4f",
+                                                "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"5px"}),
+            html.Ul(ben_items, style={"paddingLeft":"18px","marginBottom":"10px"}),
+
+            # Eccezioni
+            html.Div(_pl("except",lc), style={"fontSize":"0.68rem","fontWeight":"700","color":"#c0392b",
+                                              "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"5px"}),
+            html.Ul(exc_items, style={"paddingLeft":"18px","marginBottom":"0"}),
+
+        ], className="c-card", style={"height":"100%"})
+
+        cards.append(dbc.Col(card, width=6, className="mb-4"))
 
     return html.Div([
-        html.Div([html.Div(ct("prod_title",lc),style={"fontSize":"1.4rem","fontWeight":"800","color":"#1e2235"}),
-                  html.Div(ct("prod_sub",lc),  style={"color":"#aaa","fontSize":"0.8rem"})],
-                 style={"marginBottom":"24px"}),
+        html.Div([
+            html.Div(ct("prod_title",lc), style={"fontSize":"1.4rem","fontWeight":"800","color":"#1e2235"}),
+            html.Div(ct("prod_sub",lc),   style={"color":"#aaa","fontSize":"0.8rem"}),
+        ], style={"marginBottom":"24px"}),
         dbc.Row(cards),
     ])
 
@@ -1462,70 +1655,261 @@ def _safe_fit(p,c):
 
 # ── SUGGERIMENTS de productes per perfil ─────────────────────────────────────
 def _get_suggestions(c, lc):
-    lc=lc or "it"
-    prodotto=(c.get("prodotto_contrattato","") or "").lower()
-    result=[]
+    lc = lc or "it"
+    sel = _get_prodotti_sel(c)
+    result = []
     for p in PRODUCTS:
-        fits=_safe_fit(p,c)
-        already=p["id"] in prodotto
-        result.append({"p":p,"fits":fits,"already":already})
-    result.sort(key=lambda x:(not x["fits"],x["already"]))
+        fits    = _safe_fit(p, c)
+        already = p["id"] in sel
+        result.append({"p": p, "fits": fits, "already": already})
+    result.sort(key=lambda x: (not x["fits"], x["already"]))
     return result
 
-# ── DOWNLOAD — report post-riunione ──────────────────────────────────────────
+# ── DOWNLOAD — PDF report post-riunione ──────────────────────────────────────
+def _generate_pdf(nome, lc):
+    """Genera un PDF professional per al client `nome` en l'idioma `lc`."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm, cm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
+                                    Table, TableStyle, HRFlowable, KeepTogether)
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+
+    c = get_client(nome) or {}
+    lc = lc or "it"
+    today = date.today()
+    buf = io.BytesIO()
+
+    # ── colors ───────────────────────────────────────────────────────────────
+    NAVY  = colors.HexColor("#1e2235")
+    RED   = colors.HexColor("#c0392b")
+    LGREY = colors.HexColor("#f8f9fb")
+    MGREY = colors.HexColor("#eaecf2")
+    WHITE = colors.white
+
+    # ── document ─────────────────────────────────────────────────────────────
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=18*mm, rightMargin=18*mm,
+        topMargin=14*mm, bottomMargin=18*mm,
+        title=f"AlexFin – {nome}",
+        author="Alex Bevilacqua",
+    )
+
+    # ── styles ────────────────────────────────────────────────────────────────
+    styles = getSampleStyleSheet()
+    S = {
+        "h_name": ParagraphStyle("h_name", fontName="Helvetica-Bold",
+                                  fontSize=18, textColor=WHITE, leading=22),
+        "h_sub":  ParagraphStyle("h_sub",  fontName="Helvetica",
+                                  fontSize=9,  textColor=colors.HexColor("#c8cdd8"), leading=13),
+        "sect":   ParagraphStyle("sect",   fontName="Helvetica-Bold",
+                                  fontSize=9,  textColor=RED,
+                                  spaceBefore=14, spaceAfter=4, leading=12),
+        "body":   ParagraphStyle("body",   fontName="Helvetica",
+                                  fontSize=9,  textColor=NAVY, leading=14),
+        "small":  ParagraphStyle("small",  fontName="Helvetica",
+                                  fontSize=8,  textColor=colors.HexColor("#666"), leading=12),
+        "prod_n": ParagraphStyle("prod_n", fontName="Helvetica-Bold",
+                                  fontSize=9.5, textColor=NAVY, spaceBefore=4, leading=13),
+        "prod_d": ParagraphStyle("prod_d", fontName="Helvetica",
+                                  fontSize=8.5, textColor=colors.HexColor("#444"), leading=13),
+        "footer": ParagraphStyle("footer", fontName="Helvetica",
+                                  fontSize=7.5, textColor=colors.HexColor("#999"),
+                                  alignment=TA_CENTER, leading=11),
+        "note_d": ParagraphStyle("note_d", fontName="Helvetica",
+                                  fontSize=8.5, textColor=colors.HexColor("#333"),
+                                  leading=13, spaceAfter=6),
+        "note_dt":ParagraphStyle("note_dt",fontName="Helvetica-Bold",
+                                  fontSize=8,  textColor=colors.HexColor("#888"),
+                                  leading=11, spaceAfter=1),
+    }
+
+    story = []
+
+    # ── HEADER block ─────────────────────────────────────────────────────────
+    consultant_info = (
+        "Alex Bevilacqua  |  Consulenza Finanziaria Svizzera"
+    )
+    date_str = today.strftime("%d %B %Y")
+    header_data = [[
+        Paragraph(nome, S["h_name"]),
+        Paragraph(f"{consultant_info}<br/>{date_str}", S["h_sub"]),
+    ]]
+    header_tbl = Table(header_data, colWidths=["45%","55%"])
+    header_tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), NAVY),
+        ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
+        ("LEFTPADDING",(0,0), (-1,-1), 14),
+        ("RIGHTPADDING",(0,0),(-1,-1), 14),
+        ("TOPPADDING", (0,0), (-1,-1), 14),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 14),
+        ("ROUNDEDCORNERS", [8]),
+    ]))
+    story.append(header_tbl)
+    story.append(Spacer(1, 10))
+
+    # ── PROFILE table ─────────────────────────────────────────────────────────
+    lbl = {
+        "it":{"profile":"PROFILO CLIENTE","age":"Età","gender":"Sesso","canton":"Cantone",
+              "situation":"Situazione","income":"Reddito mensile","children":"Figli",
+              "mortgage":"Ipoteca","risk":"Tolleranza rischio","tel":"Telefono","email":"Email",
+              "m":"M","f":"F","yes":"Si","no":"No"},
+        "de":{"profile":"KUNDENPROFIL","age":"Alter","gender":"Geschlecht","canton":"Kanton",
+              "situation":"Situation","income":"Monatseinkommen","children":"Kinder",
+              "mortgage":"Hypothek","risk":"Risikobereitschaft","tel":"Telefon","email":"E-Mail",
+              "m":"M","f":"W","yes":"Ja","no":"Nein"},
+        "fr":{"profile":"PROFIL CLIENT","age":"Age","gender":"Sexe","canton":"Canton",
+              "situation":"Situation","income":"Revenu mensuel","children":"Enfants",
+              "mortgage":"Hypotheque","risk":"Tolerance au risque","tel":"Tel","email":"Email",
+              "m":"H","f":"F","yes":"Oui","no":"Non"},
+        "en":{"profile":"CLIENT PROFILE","age":"Age","gender":"Gender","canton":"Canton",
+              "situation":"Situation","income":"Monthly income","children":"Children",
+              "mortgage":"Mortgage","risk":"Risk tolerance","tel":"Tel","email":"Email",
+              "m":"M","f":"F","yes":"Yes","no":"No"},
+        "ca":{"profile":"PERFIL CLIENT","age":"Edat","gender":"Genere","canton":"Canto",
+              "situation":"Situacio","income":"Ingressos mensuals","children":"Fills",
+              "mortgage":"Hipoteca","risk":"Tolerancia al risc","tel":"Tel","email":"Email",
+              "m":"H","f":"D","yes":"Si","no":"No"},
+    }
+    L = lbl.get(lc, lbl["it"])
+
+    story.append(Paragraph(L["profile"], S["sect"]))
+
+    def _yn(v): return L["yes"] if v else L["no"]
+    reddito = c.get("reddito_mensile", 0)
+    prof_rows = [
+        [L["age"],       str(c.get("eta","—")),       L["gender"],  L["m"] if c.get("sesso")=="M" else L["f"]],
+        [L["canton"],    c.get("canton","—"),          L["situation"],c.get("situazione","—")],
+        [L["income"],    f"CHF {reddito:,}/mese",      L["children"],_yn(c.get("figli"))],
+        [L["mortgage"],  _yn(c.get("ipoteca")),         L["risk"],    c.get("tolleranza_rischio","—")],
+        [L["tel"],       c.get("telefono","—"),         L["email"],   c.get("email","—")],
+    ]
+    prof_col = ["28%","22%","28%","22%"]
+    prof_tbl = Table([[Paragraph(str(v), S["small"] if i%2==0 else S["body"])
+                       for i,v in enumerate(row)] for row in prof_rows],
+                     colWidths=prof_col)
+    prof_tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), LGREY),
+        ("BACKGROUND", (0,0), (0,-1), MGREY),
+        ("BACKGROUND", (2,0), (2,-1), MGREY),
+        ("FONTNAME",   (0,0), (0,-1), "Helvetica-Bold"),
+        ("FONTNAME",   (2,0), (2,-1), "Helvetica-Bold"),
+        ("FONTSIZE",   (0,0), (-1,-1), 8.5),
+        ("TEXTCOLOR",  (0,0), (0,-1), colors.HexColor("#666")),
+        ("TEXTCOLOR",  (2,0), (2,-1), colors.HexColor("#666")),
+        ("LEFTPADDING",(0,0),(-1,-1), 8),
+        ("RIGHTPADDING",(0,0),(-1,-1),8),
+        ("TOPPADDING", (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING",(0,0),(-1,-1),5),
+        ("GRID",       (0,0),(-1,-1), 0.4, MGREY),
+        ("ROUNDEDCORNERS",[6]),
+    ]))
+    story.append(prof_tbl)
+
+    # ── NOTES ─────────────────────────────────────────────────────────────────
+    notes_labels = {"it":"NOTE RIUNIONE","de":"BESPRECHUNGSNOTIZEN",
+                    "fr":"NOTES DE REUNION","en":"MEETING NOTES","ca":"NOTES REUNIO"}
+    story.append(Paragraph(notes_labels.get(lc,"NOTE RIUNIONE"), S["sect"]))
+
+    notes_log = c.get("notes_log", [])
+    meet_notes = [x for x in notes_log if x.get("tipus")=="reunio"][-3:] or notes_log[-3:]
+
+    if meet_notes:
+        for nx in reversed(meet_notes):
+            story.append(Paragraph(nx.get("data",""), S["note_dt"]))
+            story.append(Paragraph(nx.get("text","").replace("\n","<br/>"), S["note_d"]))
+    elif c.get("note"):
+        story.append(Paragraph(c["note"][:600].replace("\n","<br/>"), S["note_d"]))
+    else:
+        story.append(Paragraph("—", S["note_d"]))
+
+    # ── RECOMMENDED PRODUCTS ──────────────────────────────────────────────────
+    prod_labels = {"it":"PRODOTTI RACCOMANDATI","de":"EMPFOHLENE PRODUKTE",
+                   "fr":"PRODUITS RECOMMANDES","en":"RECOMMENDED PRODUCTS",
+                   "ca":"PRODUCTES RECOMANATS"}
+    story.append(Paragraph(prod_labels.get(lc,"PRODOTTI RACCOMANDATI"), S["sect"]))
+
+    # Productes ja seleccionats per aquest client
+    sel_ids = _get_prodotti_sel(c)
+    if sel_ids:
+        contracted_labels = {"it":"Selezionati per questo cliente","de":"Fur diesen Kunden ausgewahlt",
+                             "fr":"Selectionnes pour ce client","en":"Selected for this client",
+                             "ca":"Seleccionats per a aquest client"}
+        sel_names = "  ·  ".join(
+            p["name"].get(lc, p["name"]["it"]) for p in PRODUCTS if p["id"] in sel_ids)
+        sel_names_clean = "".join(ch for ch in sel_names if ord(ch) < 0x3000)
+        cont_box = Table([[
+            Paragraph(f"<b>{contracted_labels.get(lc,'Selezionati')}:</b>  {sel_names_clean}", S["body"])
+        ]], colWidths=["100%"])
+        cont_box.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(-1,-1), colors.HexColor("#e8f5e9")),
+            ("LEFTPADDING",(0,0),(-1,-1),10),("RIGHTPADDING",(0,0),(-1,-1),10),
+            ("TOPPADDING",(0,0),(-1,-1),7),("BOTTOMPADDING",(0,0),(-1,-1),7),
+            ("ROUNDEDCORNERS",[6]),
+        ]))
+        story.append(cont_box)
+        story.append(Spacer(1,6))
+
+    sugg = [s for s in _get_suggestions(c,lc) if s["fits"] and not s["already"]][:5]
+    for s in sugg:
+        p = s["p"]
+        pname = p["name"].get(lc, p["name"]["it"])
+        pdesc = p["desc"].get(lc, p["desc"]["it"])
+        # Strip emojis from name for Helvetica compatibility
+        pname_clean = "".join(ch for ch in pname if ord(ch) < 0x3000)
+        pdesc_clean  = "".join(ch for ch in pdesc  if ord(ch) < 0x3000)
+        prod_block = KeepTogether([
+            Paragraph(f"[+]  {pname_clean}", S["prod_n"]),
+            Paragraph(pdesc_clean, S["prod_d"]),
+            Spacer(1,4),
+            HRFlowable(width="100%", thickness=0.4, color=MGREY),
+            Spacer(1,3),
+        ])
+        story.append(prod_block)
+
+    # ── NEXT CONTACT ──────────────────────────────────────────────────────────
+    next_labels  = {"it":"PROSSIMO CONTATTO","de":"NACHSTER KONTAKT",
+                    "fr":"PROCHAIN CONTACT","en":"NEXT CONTACT","ca":"PROPER CONTACTE"}
+    story.append(Paragraph(next_labels.get(lc,"PROSSIMO CONTATTO"), S["sect"]))
+    fd = _fu(c)
+    if fd:
+        motiu = c.get("alerta_motiu","")
+        txt = fd.strftime("%d/%m/%Y")
+        if motiu: txt += f"  –  {motiu}"
+        story.append(Paragraph(txt, S["body"]))
+    else:
+        story.append(Paragraph("—", S["body"]))
+
+    story.append(Spacer(1, 16))
+
+    # ── FOOTER ────────────────────────────────────────────────────────────────
+    story.append(HRFlowable(width="100%", thickness=0.6, color=NAVY))
+    story.append(Spacer(1,5))
+    story.append(Paragraph(
+        "Alex Bevilacqua  ·  Consulenza Finanziaria Svizzera",
+        S["footer"]
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
 @callback(Output("meet-dl","data"),
           Input("btn-download","n_clicks"),
           State("info-nome","data"), State("crm-lang","data"),
           prevent_initial_call=True)
 def download_report(n, nome, lc):
     if not n or not nome: return dash.no_update
-    c=get_client(nome)
+    c = get_client(nome)
     if not c: return dash.no_update
-    lc=lc or "it"; today=date.today()
-    lines=[
-        "="*56,
-        f"  SVAG · Consulenza Finanziaria Svizzera",
-        f"  {ct('dl_profile',lc)}: {nome}",
-        f"  Data: {today.strftime('%d/%m/%Y')}",
-        "="*56,"",
-        f"─── {ct('dl_profile',lc)} ───",
-        f"Età:       {c.get('eta','—')}  |  Sesso: {'M' if c.get('sesso')=='M' else 'F'}",
-        f"Cantone:   {c.get('canton','—')}",
-        f"Situazione:{c.get('situazione','—')}  |  Reddito: CHF {c.get('reddito_mensile',0):,}/m",
-        f"Figli:     {'Sì' if c.get('figli') else 'No'}  |  Ipoteca: {'Sì' if c.get('ipoteca') else 'No'}",
-        f"Rischio:   {c.get('tolleranza_rischio','—')}",
-        f"Tel:       {c.get('telefono','—')}  |  Email: {c.get('email','—')}","",
-        f"─── {ct('dl_notes',lc)} ───",
-    ]
-    # Notes log — solo ultime 3 riunioni
-    notes_log=c.get("notes_log",[])
-    meet_notes=[n for n in notes_log if n.get("tipus")=="reunio"][-3:] or notes_log[-3:]
-    if meet_notes:
-        for n2 in reversed(meet_notes):
-            lines.append(f"[{n2.get('data','')}] {n2.get('text','')}")
-    elif c.get("note"):
-        lines.append(c["note"][:400])
-    else:
-        lines.append("—")
-    lines+=["",f"─── {ct('dl_products',lc)} ───"]
-    if c.get("prodotto_contrattato"):
-        lines.append(f"✅ Contrattato: {c['prodotto_contrattato']}")
-    sugg=[s for s in _get_suggestions(c,lc) if s["fits"] and not s["already"]][:4]
-    for s in sugg:
-        lines.append(f"⭐ {s['p']['name'].get(lc,s['p']['name']['it'])}")
-    lines+=["",f"─── {ct('dl_next',lc)} ───"]
-    fd=_fu(c)
-    if fd:
-        lines.append(f"Data:   {fd.strftime('%d/%m/%Y')}")
-        if c.get("alerta_motiu"): lines.append(f"Motivo: {c['alerta_motiu']}")
-    else:
-        lines.append("—")
-    lines+=["","─"*56,
-            "  Alex Bevilacqua · SVAG · www.svag.ch",
-            "─"*56]
-    content="\n".join(lines)
-    fname=f"SVAG_{nome.replace(' ','_')}_{today.isoformat()}.txt"
-    return dict(content=content, filename=fname)
+    lc = lc or "it"
+    today = date.today()
+    b64 = _generate_pdf(nome, lc)
+    fname = f"AlexFin_{nome.replace(' ','_')}_{today.isoformat()}.pdf"
+    return dict(base64=True, content=b64, filename=fname, type="application/pdf")
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 if __name__=="__main__":

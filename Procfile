@@ -1,1 +1,1 @@
-web: gunicorn dash_app:server
+web: gunicorn crm_app:server --workers 1 --timeout 120
