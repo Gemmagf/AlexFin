@@ -1052,6 +1052,11 @@ def _render_info_body(c, lc):
 
         html.Hr(style={"margin":"20px 0"}),
 
+        # ── Recomanador de modalitats
+        _rec_modalities(c, lc),
+
+        html.Hr(style={"margin":"20px 0"}),
+
         # ── Historial d'interaccions
         html.H6(ct("sec_log",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
         *legacy_note,
@@ -2005,6 +2010,311 @@ def _get_suggestions(c, lc):
         result.append({"p": p, "fits": fits, "already": already})
     result.sort(key=lambda x: (not x["fits"], x["already"]))
     return result
+
+# ── RECOMANADOR DE MODALITATS ────────────────────────────────────────────────
+def _rec_modalities(c, lc):
+    """Pannello raccomandazione modalità specifiche per ogni prodotto adatto al cliente."""
+    lc = lc or "it"
+    eta     = int(c.get("eta") or 40)
+    reddito = int(c.get("reddito_mensile") or 0)
+    situ    = c.get("situazione", "")
+    rischio = c.get("tolleranza_rischio", "Media")
+    has_fil = bool(c.get("figli"))
+    has_ipo = bool(c.get("ipoteca"))
+    anni    = max(65 - eta, 0)
+
+    def pv(m, an, rate=0.015):
+        if an <= 0 or m <= 0: return 0
+        return int(m * 12 * ((1 + rate) ** an - 1) / rate)
+
+    def _p(pid): return next((p for p in PRODUCTS if p["id"] == pid), None)
+    def _fit(pid): return _safe_fit(_p(pid), c) if _p(pid) else False
+
+    PRI_COLOR = {"ALTA": "#c0392b", "MEDIA": "#f39c12", "BASSA": "#27ae60"}
+    _PRI = {
+        "ALTA":  {"it":"ALTA","de":"HOCH","fr":"HAUTE","en":"HIGH","ca":"ALTA"},
+        "MEDIA": {"it":"MEDIA","de":"MITTEL","fr":"MOYENNE","en":"MEDIUM","ca":"MITJANA"},
+        "BASSA": {"it":"BASSA","de":"NIEDRIG","fr":"BASSE","en":"LOW","ca":"BAIXA"},
+    }
+    _L = {
+        "title":   {"it":"Raccomandazione modalità","de":"Modell-Empfehlung",
+                    "fr":"Recommandation modalités","en":"Modality recommendation","ca":"Recomanació de modalitats"},
+        "total_m": {"it":"Costo mensile assicurativo stimato","de":"Geschätzte monatliche Versicherungskosten",
+                    "fr":"Coût mensuel assurance estimé","en":"Estimated monthly insurance cost","ca":"Cost mensual assegurador estimat"},
+        "total_s": {"it":"Risparmio fiscale annuo totale","de":"Jährliche Steuerersparnis gesamt",
+                    "fr":"Économie fiscale annuelle totale","en":"Total annual tax saving","ca":"Estalvi fiscal anual total"},
+        "na":      {"it":"Su consulenza","de":"Auf Anfrage","fr":"Sur consultation",
+                    "en":"On consultation","ca":"A consulta"},
+        "saving":  {"it":"risparmio","de":"Ersparnis","fr":"économie","en":"saving","ca":"estalvi"},
+    }
+    def lbl(k): return _L[k].get(lc, _L[k]["it"])
+    def pri(k): return _PRI[k].get(lc, k)
+
+    recs = []
+
+    # ── 3° Pilastro ──────────────────────────────────────────────────────────
+    if _fit("3p"):
+        max_ann  = 35280 if situ == "Indipendente" else 7056
+        max_mese = max_ann // 12
+        sugg     = (max_mese if reddito >= 8000 else 400 if reddito >= 5000
+                    else 200 if reddito >= 3000 else 100)
+        is_ass   = has_fil or has_ipo
+        aliq     = 0.35 if reddito > 8000 else 0.28 if reddito > 5000 else 0.22
+        risp_ann = int(sugg * 12 * aliq)
+        cap_proj = pv(sugg, anni)
+        recs.append({
+            "prod": _p("3p"), "priority": "ALTA", "amount_m": sugg, "saving_y": risp_ann,
+            "modality": {
+                "it": "Assicurazione 3a" if is_ass else "Conto bancario 3a",
+                "de": "Versicherung 3a" if is_ass else "Bankkonto 3a",
+                "fr": "Assurance 3a" if is_ass else "Compte bancaire 3a",
+                "en": "Insurance 3a" if is_ass else "Bank account 3a",
+                "ca": "Assegurança 3a" if is_ass else "Compte bancari 3a",
+            },
+            "reason": {
+                "it": f"CHF {sugg}/mese · risparmio fiscale CHF {risp_ann:,}/anno · capitale stimato CHF {cap_proj:,} a 65a",
+                "de": f"CHF {sugg}/Monat · Steuerersparnis CHF {risp_ann:,}/Jahr · Kapital CHF {cap_proj:,} mit 65",
+                "fr": f"CHF {sugg}/mois · économie fiscale CHF {risp_ann:,}/an · capital estimé CHF {cap_proj:,} à 65 ans",
+                "en": f"CHF {sugg}/month · tax saving CHF {risp_ann:,}/yr · projected capital CHF {cap_proj:,} at 65",
+                "ca": f"CHF {sugg}/mes · estalvi fiscal CHF {risp_ann:,}/any · capital estimat CHF {cap_proj:,} a 65a",
+            },
+        })
+
+    # ── Assicurazione Vita ────────────────────────────────────────────────────
+    if _fit("vita"):
+        cap      = max(200_000, reddito * 12 * 5)
+        prem_p   = max(40, int(cap / 1000 * 0.7))
+        prem_m   = max(200, int(cap / 1000 * 2.5))
+        rec_puro = eta < 45 or has_ipo
+        amount   = prem_p if rec_puro else prem_m
+        priority = "ALTA" if (has_fil or has_ipo) else "MEDIA"
+        prot = ("famiglia+ipoteca" if has_fil and has_ipo else
+                f"{c.get('n_figli',0)} figli" if has_fil else
+                "ipoteca coperta" if has_ipo else "reddito garantito")
+        prot_t = {
+            "it": prot,
+            "de": ("Familie+Hypothek" if has_fil and has_ipo else
+                   f"{c.get('n_figli',0)} Kinder" if has_fil else
+                   "Hypothek abgedeckt" if has_ipo else "Einkommen gesichert"),
+            "fr": ("famille+hypothèque" if has_fil and has_ipo else
+                   f"{c.get('n_figli',0)} enfants" if has_fil else
+                   "hypothèque couverte" if has_ipo else "revenu garanti"),
+            "en": ("family+mortgage" if has_fil and has_ipo else
+                   f"{c.get('n_figli',0)} children" if has_fil else
+                   "mortgage covered" if has_ipo else "income secured"),
+            "ca": ("família+hipoteca" if has_fil and has_ipo else
+                   f"{c.get('n_figli',0)} fills" if has_fil else
+                   "hipoteca coberta" if has_ipo else "ingressos garantits"),
+        }
+        recs.append({
+            "prod": _p("vita"), "priority": priority, "amount_m": amount, "saving_y": 0,
+            "modality": {
+                "it": "Rischio puro (term life)" if rec_puro else "Risparmio misto",
+                "de": "Risikoversicherung (term life)" if rec_puro else "Gemischte Lebensversicherung",
+                "fr": "Risque pur (term life)" if rec_puro else "Épargne mixte",
+                "en": "Pure risk (term life)" if rec_puro else "Mixed savings policy",
+                "ca": "Risc pur (term life)" if rec_puro else "Estalvi mixt",
+            },
+            "reason": {
+                "it": f"Capital CHF {cap:,} · {prot_t['it']} · premio da CHF {amount}/mese",
+                "de": f"Kapital CHF {cap:,} · {prot_t['de']} · Prämie ab CHF {amount}/Monat",
+                "fr": f"Capital CHF {cap:,} · {prot_t['fr']} · prime dès CHF {amount}/mois",
+                "en": f"Capital CHF {cap:,} · {prot_t['en']} · premium from CHF {amount}/month",
+                "ca": f"Capital CHF {cap:,} · {prot_t['ca']} · prima des de CHF {amount}/mes",
+            },
+        })
+
+    # ── Assicurazione Invalidità ──────────────────────────────────────────────
+    if _fit("ai"):
+        ai_st = int(reddito * 0.60)
+        gap   = max(0, reddito - ai_st)
+        ind   = situ == "Indipendente"
+        prem  = max(150, gap // 8) if ind else max(80, gap // 10)
+        recs.append({
+            "prod": _p("ai"), "priority": "ALTA" if ind else "MEDIA",
+            "amount_m": prem, "saving_y": 0,
+            "modality": {
+                "it": "Copertura autonomi" if ind else "Complemento AI dipendenti",
+                "de": "Selbstständigendeckung" if ind else "IV-Ergänzung Angestellte",
+                "fr": "Couverture indépendants" if ind else "Complément AI salariés",
+                "en": "Self-employed coverage" if ind else "AI complement (employed)",
+                "ca": "Cobertura autònoms" if ind else "Complement AI assalariats",
+            },
+            "reason": {
+                "it": f"Gap reddito: CHF {gap:,}/mese scoperto · {'nessuna AI statale (autonomo)' if ind else f'AI statale ~CHF {ai_st:,}/mese — integrazione privata necessaria'}",
+                "de": f"Einkommenslücke: CHF {gap:,}/Monat · {'keine IV-Rente (Selbstständige)' if ind else f'Staatliche IV ~CHF {ai_st:,}/Monat — private Ergänzung nötig'}",
+                "fr": f"Lacune revenu: CHF {gap:,}/mois · {'aucune AI étatique (indépendant)' if ind else f'AI étatique ~CHF {ai_st:,}/mois — complément privé nécessaire'}",
+                "en": f"Income gap: CHF {gap:,}/month · {'no state AI (self-employed)' if ind else f'state AI ~CHF {ai_st:,}/month — private top-up needed'}",
+                "ca": f"Llacuna ingressos: CHF {gap:,}/mes · {'cap AI estatal (autònom)' if ind else f'AI estatal ~CHF {ai_st:,}/mes — complement privat necessari'}",
+            },
+        })
+
+    # ── Ipoteca ───────────────────────────────────────────────────────────────
+    if _fit("ipoteca"):
+        rec_mod = ("SARON" if rischio == "Alta" else
+                   "Fisso 5 anni" if rischio == "Media" else "Fisso 10 anni")
+        rec_mod_t = {
+            "it": rec_mod,
+            "de": "SARON" if rischio=="Alta" else "Fix 5 Jahre" if rischio=="Media" else "Fix 10 Jahre",
+            "fr": "SARON" if rischio=="Alta" else "Fixe 5 ans" if rischio=="Media" else "Fixe 10 ans",
+            "en": "SARON" if rischio=="Alta" else "Fixed 5yr" if rischio=="Media" else "Fixed 10yr",
+            "ca": "SARON" if rischio=="Alta" else "Fix 5 anys" if rischio=="Media" else "Fix 10 anys",
+        }
+        recs.append({
+            "prod": _p("ipoteca"), "priority": "ALTA" if has_ipo else "MEDIA",
+            "amount_m": None, "saving_y": 0,
+            "modality": rec_mod_t,
+            "reason": {
+                "it": f"Profilo rischio {rischio} · ammortamento indiretto 3° pilastro · confrontare ≥3 istituti",
+                "de": f"Risikoprofil {rischio} · indirekter Amortisation 3. Säule · ≥3 Anbieter vergleichen",
+                "fr": f"Profil risque {rischio} · amortissement indirect 3e pilier · ≥3 instituts à comparer",
+                "en": f"Risk profile {rischio} · indirect amortisation pillar 3 · compare ≥3 institutions",
+                "ca": f"Perfil risc {rischio} · amortització indirecta 3r Pilar · comparar ≥3 entitats",
+            },
+        })
+
+    # ── LPP ───────────────────────────────────────────────────────────────────
+    if _fit("lpp"):
+        aliq    = 0.35 if reddito > 8000 else 0.28 if reddito > 5000 else 0.22
+        ex_comp = min(20000, reddito * 24)
+        risp    = int(ex_comp * aliq)
+        recs.append({
+            "prod": _p("lpp"), "priority": "ALTA" if reddito > 5000 else "MEDIA",
+            "amount_m": None, "saving_y": risp,
+            "modality": {
+                "it": "Riscatti volontari LPP",
+                "de": "Freiwillige LPP-Einkäufe",
+                "fr": "Rachats volontaires LPP",
+                "en": "Voluntary LPP buybacks",
+                "ca": "Rescats voluntaris LPP",
+            },
+            "reason": {
+                "it": f"Riscatto CHF {ex_comp:,}/anno · risparmio imposte immediato CHF {risp:,} · rendimento ~2-3%/anno garantito",
+                "de": f"Einkauf CHF {ex_comp:,}/Jahr · sofortige Steuerersparnis CHF {risp:,} · Rendite ~2-3%/Jahr garantiert",
+                "fr": f"Rachat CHF {ex_comp:,}/an · économie d'impôts immédiate CHF {risp:,} · rendement ~2-3%/an garanti",
+                "en": f"Buyback CHF {ex_comp:,}/yr · immediate tax saving CHF {risp:,} · guaranteed return ~2-3%/yr",
+                "ca": f"Rescat CHF {ex_comp:,}/any · estalvi fiscal immediat CHF {risp:,} · rendiment ~2-3%/any garantit",
+            },
+        })
+
+    # ── Hausrat + RC ──────────────────────────────────────────────────────────
+    if _fit("hausrat"):
+        val     = max(30_000, reddito * 8)
+        prem    = 180 + min(100, reddito // 80)
+        prem_pr = prem + 90
+        rec_pr  = reddito >= 6000
+        chosen  = prem_pr if rec_pr else prem
+        recs.append({
+            "prod": _p("hausrat"), "priority": "MEDIA",
+            "amount_m": chosen // 12, "saving_y": 0,
+            "modality": {
+                "it": "Premium" if rec_pr else "Standard",
+                "de": "Premium" if rec_pr else "Standard",
+                "fr": "Premium" if rec_pr else "Standard",
+                "en": "Premium" if rec_pr else "Standard",
+                "ca": "Premium" if rec_pr else "Standard",
+            },
+            "reason": {
+                "it": f"Contenuto CHF {val:,} · RC privata {'CHF 5M + ass. 24h' if rec_pr else 'CHF 3M'} · ~CHF {chosen}/anno",
+                "de": f"Inhalt CHF {val:,} · Privathaftpflicht {'CHF 5M + 24h-Ass.' if rec_pr else 'CHF 3M'} · ~CHF {chosen}/Jahr",
+                "fr": f"Contenu CHF {val:,} · RC privée {'CHF 5M + assist. 24h' if rec_pr else 'CHF 3M'} · ~CHF {chosen}/an",
+                "en": f"Contents CHF {val:,} · private RC {'CHF 5M + 24h assist.' if rec_pr else 'CHF 3M'} · ~CHF {chosen}/yr",
+                "ca": f"Contingut CHF {val:,} · RC privada {'CHF 5M + assist. 24h' if rec_pr else 'CHF 3M'} · ~CHF {chosen}/any",
+            },
+        })
+
+    # ── Malattia ──────────────────────────────────────────────────────────────
+    if _fit("malattia"):
+        franc_rec = (2500 if reddito >= 7000 else 1500 if reddito >= 5000
+                     else 1000 if reddito >= 3000 else 500)
+        mod_rec   = "HMO" if reddito >= 5000 else "Telmed" if reddito >= 3000 else "Standard"
+        risp_f    = max(0, (franc_rec - 300) // 300 * 60)
+        prima_est = max(350, int(reddito * 0.06))
+        risp_mod  = int(prima_est * (0.175 if mod_rec == "HMO" else 0.125 if mod_rec == "Telmed" else 0))
+        saving_y  = risp_f + risp_mod
+        recs.append({
+            "prod": _p("malattia"), "priority": "ALTA",
+            "amount_m": max(200, prima_est - risp_mod), "saving_y": saving_y,
+            "modality": {
+                "it": f"{mod_rec} + franchigia CHF {franc_rec}",
+                "de": f"{mod_rec} + Franchise CHF {franc_rec}",
+                "fr": f"{mod_rec} + franchise CHF {franc_rec}",
+                "en": f"{mod_rec} + franchise CHF {franc_rec}",
+                "ca": f"{mod_rec} + franquícia CHF {franc_rec}",
+            },
+            "reason": {
+                "it": f"Risparmio ~CHF {saving_y}/anno vs configurazione sub-ottimale · cambio libero entro 31 ottobre",
+                "de": f"Ersparnis ~CHF {saving_y}/Jahr vs. aktuelle Konfiguration · Wechsel bis 31. Oktober frei",
+                "fr": f"Économie ~CHF {saving_y}/an vs configuration actuelle · changement libre jusqu'au 31 octobre",
+                "en": f"Saving ~CHF {saving_y}/yr vs current setup · free switch before Oct 31st",
+                "ca": f"Estalvi ~CHF {saving_y}/any vs configuració actual · canvi lliure fins 31 octubre",
+            },
+        })
+
+    if not recs:
+        return html.Div()
+
+    # ── Totals ────────────────────────────────────────────────────────────────
+    total_m = sum(r["amount_m"] for r in recs if r["amount_m"] is not None)
+    total_s = sum(r["saving_y"] for r in recs)
+
+    # ── Render rows ───────────────────────────────────────────────────────────
+    def _row(r):
+        prod   = r["prod"]
+        pname  = prod["name"].get(lc, prod["name"]["it"])
+        mod    = r["modality"].get(lc, r["modality"]["it"])
+        rsn    = r["reason"].get(lc, r["reason"]["it"])
+        pri_k  = r["priority"]
+        pri_c  = PRI_COLOR[pri_k]
+        amt_s  = f"CHF {r['amount_m']}/mese" if r["amount_m"] else lbl("na")
+        sav_s  = (f"  · 💰 CHF {r['saving_y']:,} {lbl('saving')}/anno" if r["saving_y"] > 0 else "")
+        return html.Div([
+            html.Div([
+                html.Span(prod["icon"], style={"fontSize":"1rem","marginRight":"8px"}),
+                html.Span(pname, style={"fontWeight":"700","color":"#1e2235","fontSize":"0.9rem"}),
+                html.Span(pri(pri_k), style={
+                    "background": pri_c + "22", "color": pri_c,
+                    "border": f"1px solid {pri_c}55",
+                    "borderRadius":"10px", "padding":"2px 9px",
+                    "fontSize":"0.68rem", "fontWeight":"700", "marginLeft":"auto",
+                }),
+            ], style={"display":"flex","alignItems":"center","marginBottom":"6px"}),
+            html.Div([
+                html.Span("📐 "),
+                html.Span(mod, style={"fontWeight":"700","color":"#2563eb","fontSize":"0.84rem"}),
+                html.Span(f"  ·  {amt_s}", style={"color":"#666","fontSize":"0.81rem","marginLeft":"4px"}),
+                html.Span(sav_s, style={"color":"#27ae60","fontSize":"0.79rem","marginLeft":"4px","fontWeight":"600"}),
+            ], style={"marginBottom":"5px","fontSize":"0.81rem"}),
+            html.Div(rsn, style={"fontSize":"0.78rem","color":"#777","lineHeight":"1.45","fontStyle":"italic"}),
+        ], style={
+            "padding":"10px 14px", "borderRadius":"9px", "marginBottom":"7px",
+            "background": "#fff9f9" if pri_k=="ALTA" else "#fffdf5" if pri_k=="MEDIA" else "#f8fff9",
+            "border": f"1px solid {pri_c}33",
+        })
+
+    footer_items = [
+        html.Div([
+            html.Span(lbl("total_m") + ":", style={"fontSize":"0.78rem","color":"#555","fontWeight":"600"}),
+            html.Span(f" CHF {total_m}/mese", style={"fontWeight":"700","color":"#1e2235","marginLeft":"6px"}),
+        ], style={"marginBottom":"3px"}),
+    ]
+    if total_s > 0:
+        footer_items.append(html.Div([
+            html.Span(lbl("total_s") + ":", style={"fontSize":"0.78rem","color":"#555","fontWeight":"600"}),
+            html.Span(f" CHF {total_s:,}/anno", style={"fontWeight":"700","color":"#27ae60","marginLeft":"6px"}),
+        ]))
+
+    return html.Div([
+        html.H6([
+            html.Span("📐", style={"marginRight":"8px"}),
+            lbl("title"),
+        ], style={"fontWeight":"700","color":"#1e2235","marginBottom":"12px"}),
+        *[_row(r) for r in recs],
+        html.Div(footer_items,
+                 style={"background":"#f8f9fb","borderRadius":"8px","padding":"10px 14px",
+                        "marginTop":"4px","border":"1px solid #eaecf2"}),
+    ])
+
 
 # ── DOWNLOAD — PDF report post-riunione ──────────────────────────────────────
 def _generate_pdf(nome, lc):
