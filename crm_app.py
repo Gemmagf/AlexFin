@@ -139,6 +139,21 @@ _T = {
     "r_bassa":        {"it":"Bassa","de":"Niedrig","fr":"Faible","en":"Low","ca":"Baixa"},
     "r_media":        {"it":"Media","de":"Mittel","fr":"Moyenne","en":"Medium","ca":"Mitjana"},
     "r_alta":         {"it":"Alta","de":"Hoch","fr":"Élevée","en":"High","ca":"Alta"},
+    # Notes log & alertes
+    "nt_nota":        {"it":"📝 Nota","de":"📝 Notiz","fr":"📝 Note","en":"📝 Note","ca":"📝 Nota"},
+    "nt_reunio":      {"it":"🤝 Riunione","de":"🤝 Treffen","fr":"🤝 Réunion","en":"🤝 Meeting","ca":"🤝 Reunió"},
+    "nt_contracte":   {"it":"📄 Contratto","de":"📄 Vertrag","fr":"📄 Contrat","en":"📄 Contract","ca":"📄 Contracte"},
+    "nt_trucada":     {"it":"📞 Chiamata","de":"📞 Anruf","fr":"📞 Appel","en":"📞 Call","ca":"📞 Trucada"},
+    "note_new_ph":    {"it":"Cosa è successo? Prossimi passi…","de":"Was ist passiert?…","fr":"Que s'est-il passé?…","en":"What happened? Next steps…","ca":"Que ha passat? Pròxims passos…"},
+    "sec_log":        {"it":"📋 Storico interazioni","de":"📋 Verlauf","fr":"📋 Historique","en":"📋 Interaction log","ca":"📋 Historial d'interaccions"},
+    "sec_add_note":   {"it":"✏️ Aggiungi nota","de":"✏️ Notiz hinzufügen","fr":"✏️ Ajouter note","en":"✏️ Add note","ca":"✏️ Afegir nota"},
+    "sec_alert":      {"it":"🔔 Prossimo contatto / Alerta","de":"🔔 Nächster Kontakt","fr":"🔔 Prochain contact","en":"🔔 Next contact / Alert","ca":"🔔 Proper contacte / Alerta"},
+    "alert_motiu_ph": {"it":"Motivo del contatto…","de":"Kontaktgrund…","fr":"Raison du contact…","en":"Contact reason…","ca":"Motiu del contacte…"},
+    "btn_save_note":  {"it":"💾 Salva nota + alerta","de":"💾 Notiz + Erinnerung","fr":"💾 Sauvegarder","en":"💾 Save note + alert","ca":"💾 Desa nota + alerta"},
+    "note_saved":     {"it":"✅ Nota salvata","de":"✅ Notiz gespeichert","fr":"✅ Note sauvegardée","en":"✅ Note saved","ca":"✅ Nota desada"},
+    "alert_saved":    {"it":"🔔 Alerta impostata","de":"🔔 Erinnerung gesetzt","fr":"🔔 Alerte définie","en":"🔔 Alert set","ca":"🔔 Alerta configurada"},
+    "no_notes":       {"it":"Nessuna interazione registrata.","de":"Keine Interaktionen.","fr":"Aucune interaction.","en":"No interactions recorded.","ca":"Cap interacció registrada."},
+    "no_change":      {"it":"⚠️ Niente da salvare.","de":"⚠️ Nichts zu speichern.","fr":"⚠️ Rien à enregistrer.","en":"⚠️ Nothing to save.","ca":"⚠️ Res a desar."},
 }
 
 LANG_OPTS = [{"label":"🇮🇹 IT","value":"it"},{"label":"🇩🇪 DE","value":"de"},
@@ -177,6 +192,7 @@ def _default(c):
             "data_primo_contatto": c.get("data_salvataggio",""),
             "data_prossimo_followup":"","valore_stimato":0,
             "prodotto_contrattato":"","note":"",
+            "notes_log":[],"alerta_motiu":"",
             "data_salvataggio": date.today().isoformat(),"stato":"lead"}
     for k,v in defs.items(): c.setdefault(k,v)
     ps = c["pipeline_stage"]
@@ -338,6 +354,7 @@ app.layout = html.Div([
     dcc.Store(id="active-tab",  data="tab-dash"),
     dcc.Store(id="edit-nome",   data=None),
     dcc.Store(id="del-nome",    data=None),
+    dcc.Store(id="info-nome",   data=None),
     dcc.Interval(id="crm-tick", interval=30_000, n_intervals=0),
     # Navbar
     html.Nav(id="crm-navbar", className="crm-navbar"),
@@ -367,7 +384,12 @@ app.layout = html.Div([
         dbc.ModalHeader(html.Span(id="info-title"),close_button=True,
                         style={"background":"#1e2235","color":"white","borderRadius":"12px 12px 0 0"}),
         dbc.ModalBody(html.Div(id="info-body")),
-    ], id="info-modal", size="lg", scrollable=True, is_open=False),
+        dbc.ModalFooter([
+            html.Div(id="info-note-msg",style={"fontSize":"0.85rem","color":"#27ae60","flex":"1","minHeight":"20px"}),
+            dbc.Button(id="btn-save-note",className="btn-crm-primary"),
+        ],style={"display":"flex","alignItems":"center","gap":"12px","background":"#f8f9fb",
+                 "borderTop":"1px solid #eaecf2","borderRadius":"0 0 12px 12px"}),
+    ], id="info-modal", size="xl", scrollable=True, is_open=False),
 ])
 
 # ── NAVBAR ───────────────────────────────────────────────────────────────────
@@ -586,8 +608,8 @@ def render_agenda(cs,lc):
             html.Div(d.strftime("%d/%m"),className="agenda-date",style={"color":color}),
             html.Div([html.Div(c.get("nome","—"),className="agenda-name"),
                       html.Div(f"{c.get('situazione','—')} · {c.get('canton','—')} · CHF {c.get('reddito_mensile',0):,}/m",className="agenda-sub"),
-                      html.Div(c.get("note","")[:80]+("…" if len(c.get("note",""))>80 else ""),
-                               style={"fontSize":"0.72rem","color":"#bbb","marginTop":"2px"}) if c.get("note") else html.Div()]),
+                      html.Div(c.get("alerta_motiu","") or (c.get("note","")[:60]+"…" if len(c.get("note",""))>60 else c.get("note","")),
+                               style={"fontSize":"0.72rem","color":"#888","marginTop":"2px","fontStyle":"italic"}) if (c.get("alerta_motiu") or c.get("note")) else html.Div()]),
             html.Div([_pill(c.get("pipeline_stage","lead"),lc),
                       dbc.Button("ℹ️",id={"type":"btn-info","index":c.get("nome","")},size="sm",color="light",className="ms-2 p-1"),
                       dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",className="ms-1 p-1")],
@@ -619,11 +641,11 @@ def render_agenda(cs,lc):
 # ── MODAL LABELS reactius a idioma ───────────────────────────────────────────
 @callback(Output("btn-cancel","children"), Output("btn-save","children"),
           Output("btn-del-cancel","children"), Output("btn-del-ok","children"),
-          Output("del-modal-hdr","children"),
+          Output("del-modal-hdr","children"), Output("btn-save-note","children"),
           Input("crm-lang","data"))
 def modal_labels(lc):
     lc=lc or "it"
-    return ct("btn_cancel",lc),ct("btn_save",lc),ct("btn_cancel",lc),ct("btn_delete",lc),ct("del_title",lc)
+    return ct("btn_cancel",lc),ct("btn_save",lc),ct("btn_cancel",lc),ct("btn_delete",lc),ct("del_title",lc),ct("btn_save_note",lc)
 
 # ── OPEN EDIT MODAL — btn-new sempre al DOM (navbar) ─────────────────────────
 @callback(
@@ -645,101 +667,232 @@ def open_modal(n_new, n_edit, n_cancel, n_save, lc):
     if tid == "btn-new":
         return True, _form(None,lc), ct("modal_new",lc), None
     if isinstance(tid,dict) and tid.get("type")=="btn-edit":
+        # FIX: ignora el render inicial (n_clicks=None) — evita modal auto-obert
+        if not (ctx.triggered or [{}])[0].get("value"):
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
         nome=tid["index"]; c=get_client(nome)
         return True, _form(c,lc), f"{ct('modal_edit',lc)} — {nome}", nome
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
-# ── INFO FITXA CLIENT ─────────────────────────────────────────────────────────
+# ── INFO FITXA CLIENT — helper ────────────────────────────────────────────────
+_NOTE_TYPES = [("nota","#6b7280"),("reunio","#8b5cf6"),("contracte","#22c55e"),("trucada","#3b82f6")]
+_NOTE_ICONS  = {"nota":"📝","reunio":"🤝","contracte":"📄","trucada":"📞"}
+
+def _render_info_body(c, lc):
+    lc = lc or "it"
+    stage = c.get("pipeline_stage","lead"); color_s = STAGE_COLORS.get(stage,"#888")
+    fd = _fu(c); today = date.today()
+    fu_color = "#e74c3c" if (fd and fd<today) else ("#f39c12" if fd==today else "#1e2235")
+    fu_str = fd.strftime("%d/%m/%Y") if fd else "—"
+
+    try:
+        d0 = date.fromisoformat(c.get("data_primo_contatto","") or c.get("data_salvataggio",""))
+        delta = (today-d0).days; years=delta//365; months=(delta%365)//30
+        durada_str = f"{years}a {months}m" if years else f"{months}m" if months else f"{delta}d"
+    except Exception: durada_str = "—"
+
+    def row(label,value,color=None):
+        return html.Div([
+            html.Span(label,style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
+                                   "textTransform":"uppercase","letterSpacing":"0.06em",
+                                   "minWidth":"160px","display":"inline-block"}),
+            html.Span(str(value) if value else "—",style={"fontWeight":"600","color":color or "#1e2235"}),
+        ],style={"padding":"7px 0","borderBottom":"1px solid #f5f5f5"})
+
+    # ── Notes log
+    notes_log = c.get("notes_log",[])
+    def note_badge(t):
+        col = dict(_NOTE_TYPES).get(t,"#6b7280"); ico = _NOTE_ICONS.get(t,"📝")
+        return html.Span(f"{ico} {ct('nt_'+t,lc)}",
+                         style={"background":col+"22","color":col,"border":f"1px solid {col}55",
+                                "borderRadius":"12px","padding":"2px 8px","fontSize":"0.68rem","fontWeight":"700"})
+    if notes_log:
+        note_items=[html.Div([
+            html.Div([note_badge(n.get("tipus","nota")),
+                      html.Span(n.get("data",""),style={"fontSize":"0.72rem","color":"#aaa","marginLeft":"10px"})],
+                     style={"marginBottom":"4px"}),
+            html.Div(n.get("text",""),style={"fontSize":"0.87rem","color":"#333","lineHeight":"1.5"}),
+        ],style={"padding":"10px 0","borderBottom":"1px solid #f0f2f7"}) for n in reversed(notes_log)]
+    else:
+        note_items=[html.Div(ct("no_notes",lc),style={"color":"#aaa","fontSize":"0.85rem","padding":"10px 0"})]
+
+    # ── Old free-text note (backward compat)
+    legacy_note = []
+    if c.get("note") and not notes_log:
+        legacy_note = [
+            html.Div(ct("sec_notes",lc),style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
+                                               "textTransform":"uppercase","letterSpacing":"0.06em","marginBottom":"6px"}),
+            html.Div(c["note"],style={"background":"#f8f9fb","borderRadius":"10px","padding":"12px",
+                                      "fontSize":"0.88rem","color":"#444","lineHeight":"1.6",
+                                      "whiteSpace":"pre-wrap","border":"1px solid #eaecf2","marginBottom":"12px"}),
+        ]
+
+    # ── Alerta vigent
+    alerta_motiu = c.get("alerta_motiu","")
+    alert_banner = []
+    if fd:
+        alert_banner = [html.Div([
+            html.Span("🔔 ",style={"fontSize":"1rem"}),
+            html.Span(fd.strftime("%d/%m/%Y"),style={"fontWeight":"700","color":fu_color,"fontSize":"0.95rem"}),
+            html.Span(f"  —  {alerta_motiu}" if alerta_motiu else "",
+                      style={"color":"#666","fontSize":"0.85rem","marginLeft":"8px"}),
+        ],style={"background":"#fff8e1","border":f"1px solid {fu_color}44","borderRadius":"10px",
+                 "padding":"10px 16px","marginBottom":"12px"})]
+
+    # ── Note type options
+    note_type_opts=[{"label":f"{_NOTE_ICONS[k]} {ct('nt_'+k,lc)}","value":k} for k,_ in _NOTE_TYPES]
+
+    return html.Div([
+        # Header: fase + durada
+        html.Div([
+            html.Span(slabel(stage,lc),className="stage-pill",
+                      style={"background":color_s+"22","color":color_s,"border":f"1px solid {color_s}55",
+                             "fontSize":"0.85rem","padding":"5px 14px"}),
+            html.Span(f"  ·  {ct('f_data1',lc)}: {c.get('data_primo_contatto','—')}",
+                      style={"fontSize":"0.82rem","color":"#888","marginLeft":"12px"}),
+            html.Span(f"  ·  {durada_str} al CRM",style={"fontSize":"0.82rem","color":"#888"}),
+        ],style={"marginBottom":"20px"}),
+
+        # Dades — 2 columnes
+        dbc.Row([
+            dbc.Col([
+                html.H6("👤 Perfil",style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+                row(ct("f_eta",lc),    f"{c.get('eta','—')} anys"),
+                row(ct("f_sesso",lc),  ct("f_sesso_m",lc) if c.get("sesso")=="M" else ct("f_sesso_f",lc)),
+                row(ct("f_canton",lc), c.get("canton","—")),
+                row(ct("f_situ",lc),   c.get("situazione","—")),
+                row(ct("f_sc",lc),     c.get("stato_civile","—")),
+                row(ct("f_figli",lc),  f"{c.get('n_figli',0)} fills" if c.get("figli") else ct("no",lc)),
+                row(ct("f_ipoteca",lc),ct("yes",lc) if c.get("ipoteca") else ct("no",lc)),
+                row(ct("f_rischio",lc),c.get("tolleranza_rischio","—")),
+            ],width=5),
+            dbc.Col([
+                html.H6("💼 CRM & Productes",style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+                row(ct("f_reddito",lc), f"CHF {c.get('reddito_mensile',0):,}/mes"),
+                row(ct("f_lang",lc),    c.get("lc","—").upper()),
+                row(ct("f_tel",lc),     c.get("telefono","") or "—"),
+                row("Email",            c.get("email","") or "—"),
+                row(ct("f_valore",lc),  f"CHF {c.get('valore_stimato',0):,}/any" if c.get("valore_stimato") else "—"),
+                row(ct("f_followup",lc),fu_str,color=fu_color),
+                html.Div(style={"marginTop":"14px"}),
+                html.Div(ct("f_prodotto",lc),
+                         style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
+                                "textTransform":"uppercase","letterSpacing":"0.06em","marginBottom":"6px"}),
+                html.Div(c.get("prodotto_contrattato","") or "—",
+                         style={"background":"#fde8e8","color":"#c0392b","padding":"8px 12px",
+                                "borderRadius":"8px","fontSize":"0.88rem","fontWeight":"600",
+                                "border":"1px solid #f5c6c0"} if c.get("prodotto_contrattato") else
+                               {"color":"#aaa","fontSize":"0.88rem"}),
+            ],width=7),
+        ]),
+
+        html.Hr(style={"margin":"20px 0"}),
+
+        # ── Historial d'interaccions
+        html.H6(ct("sec_log",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+        *legacy_note,
+        html.Div(note_items,style={"maxHeight":"220px","overflowY":"auto","paddingRight":"4px"}),
+
+        html.Hr(style={"margin":"20px 0"}),
+
+        # ── Afegir nota
+        html.H6(ct("sec_add_note",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"12px"}),
+        dbc.Row([
+            dbc.Col(dbc.Select(id="info-note-type",options=note_type_opts,value="nota",
+                               style={"fontSize":"0.85rem"}),width=3),
+            dbc.Col(dbc.Textarea(id="info-note-text",placeholder=ct("note_new_ph",lc),
+                                 style={"fontSize":"0.87rem","borderRadius":"8px","border":"1px solid #e0e3ec",
+                                        "padding":"8px","minHeight":"72px","resize":"vertical"}),width=9),
+        ],className="mb-3"),
+
+        # ── Alerta / pròxim contacte
+        html.H6(ct("sec_alert",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"8px"}),
+        *alert_banner,
+        dbc.Row([
+            dbc.Col([
+                html.Div(ct("f_followup",lc),className="crm-form-label"),
+                dbc.Input(id="info-alert-date",type="date",value=fd.isoformat() if fd else "",
+                          style={"fontSize":"0.87rem"}),
+            ],width=3),
+            dbc.Col([
+                html.Div(ct("alert_motiu_ph",lc),className="crm-form-label"),
+                dbc.Input(id="info-alert-motiu",value=alerta_motiu,
+                          placeholder=ct("alert_motiu_ph",lc),style={"fontSize":"0.87rem"}),
+            ],width=9),
+        ]),
+        html.Div(style={"height":"8px"}),  # spacing before footer
+    ])
+
+
+# ── INFO FITXA CLIENT — callback ──────────────────────────────────────────────
 @callback(
     Output("info-modal","is_open"),
     Output("info-title","children"),
     Output("info-body","children"),
+    Output("info-nome","data"),
     Input({"type":"btn-info","index":ALL},"n_clicks"),
     State("crm-lang","data"),
     prevent_initial_call=True,
 )
 def open_info(n_list, lc):
     lc=lc or "it"; tid=ctx.triggered_id
-    if not isinstance(tid,dict) or not any(n for n in (n_list or []) if n):
-        return dash.no_update, dash.no_update, dash.no_update
+    # FIX: ignora el render inicial (n_clicks=None)
+    if not isinstance(tid,dict) or not (ctx.triggered or [{}])[0].get("value"):
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
     nome=tid["index"]; c=get_client(nome)
+    if not c: return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    return True, f"👤 {nome}", _render_info_body(c,lc), nome
+
+
+# ── SAVE NOTA + ALERTA ────────────────────────────────────────────────────────
+@callback(
+    Output("info-note-msg","children"),
+    Output("crm-reload","data",allow_duplicate=True),
+    Output("info-body","children",allow_duplicate=True),
+    Input("btn-save-note","n_clicks"),
+    State("info-nome","data"),
+    State("info-note-type","value"),
+    State("info-note-text","value"),
+    State("info-alert-date","value"),
+    State("info-alert-motiu","value"),
+    State("crm-reload","data"),
+    State("crm-lang","data"),
+    prevent_initial_call=True,
+)
+def save_note(n, nome, tipus, text, alert_date, alert_motiu, rn, lc):
+    lc = lc or "it"
+    if not n or not nome: return dash.no_update, dash.no_update, dash.no_update
+    c = get_client(nome)
     if not c: return dash.no_update, dash.no_update, dash.no_update
 
-    # Dades
-    def row(label,value,color=None):
-        return html.Div([
-            html.Span(label,style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
-                                   "textTransform":"uppercase","letterSpacing":"0.06em","minWidth":"160px","display":"inline-block"}),
-            html.Span(str(value) if value else "—",
-                      style={"fontWeight":"600","color":color or "#1e2235"}),
-        ], style={"padding":"7px 0","borderBottom":"1px solid #f5f5f5"})
+    msgs=[]; changed=False
 
-    stage=c.get("pipeline_stage","lead")
-    color_s=STAGE_COLORS.get(stage,"#888")
-    fd=_fu(c); today=date.today()
-    fu_color="#e74c3c" if (fd and fd<today) else ("#f39c12" if fd==today else "#1e2235")
-    fu_str=fd.strftime("%d/%m/%Y") if fd else "—"
+    # Afegir entrada al log
+    if text and text.strip():
+        c.setdefault("notes_log",[]).append({
+            "data": date.today().isoformat(),
+            "tipus": tipus or "nota",
+            "text": text.strip(),
+        })
+        msgs.append(ct("note_saved",lc)); changed=True
 
-    # Anys com a client
-    try:
-        d0=date.fromisoformat(c.get("data_primo_contatto","") or c.get("data_salvataggio",""))
-        delta=(today-d0).days
-        years=delta//365; months=(delta%365)//30
-        durada_str=f"{years}a {months}m" if years else f"{months}m" if months else f"{delta}d"
-    except Exception:
-        durada_str="—"
+    # Actualitzar alerta
+    old_date = c.get("data_prossimo_followup","")
+    old_motiu= c.get("alerta_motiu","")
+    new_date  = alert_date or ""
+    new_motiu = alert_motiu or ""
+    if new_date!=old_date or new_motiu!=old_motiu:
+        c["data_prossimo_followup"] = new_date
+        c["alerta_motiu"]           = new_motiu
+        if new_date: msgs.append(ct("alert_saved",lc))
+        changed=True
 
-    body=html.Div([
-        # Header colorat amb fase
-        html.Div([
-            html.Span(slabel(stage,lc),className="stage-pill",
-                      style={"background":color_s+"22","color":color_s,"border":f"1px solid {color_s}55","fontSize":"0.85rem","padding":"5px 14px"}),
-            html.Span(f"  ·  {ct('f_data1',lc)}: {c.get('data_primo_contatto','—')}",
-                      style={"fontSize":"0.82rem","color":"#888","marginLeft":"12px"}),
-            html.Span(f"  ·  {durada_str} nel CRM",style={"fontSize":"0.82rem","color":"#888"}),
-        ], style={"marginBottom":"20px"}),
+    if not changed:
+        return ct("no_change",lc), dash.no_update, dash.no_update
 
-        dbc.Row([
-            dbc.Col([
-                html.H6("👤 Profilo", style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
-                row(ct("f_eta",lc),     f"{c.get('eta','—')} anni"),
-                row(ct("f_sesso",lc),   ct("f_sesso_m",lc) if c.get("sesso")=="M" else ct("f_sesso_f",lc)),
-                row(ct("f_canton",lc),  c.get("canton","—")),
-                row(ct("f_situ",lc),    c.get("situazione","—")),
-                row(ct("f_sc",lc),      c.get("stato_civile","—")),
-                row(ct("f_figli",lc),   f"{c.get('n_figli',0)} {ct('f_nfigli',lc).lower()}" if c.get("figli") else ct("no",lc)),
-                row(ct("f_ipoteca",lc), ct("yes",lc) if c.get("ipoteca") else ct("no",lc)),
-                row(ct("f_rischio",lc), c.get("tolleranza_rischio","—")),
-            ], width=5),
-            dbc.Col([
-                html.H6("💼 CRM & Prodotti", style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
-                row(ct("f_reddito",lc),  f"CHF {c.get('reddito_mensile',0):,}/mese"),
-                row(ct("f_lang",lc),     c.get("lc","—").upper()),
-                row(ct("f_tel",lc),      c.get("telefono","") or "—"),
-                row("Email",             c.get("email","") or "—"),
-                row(ct("f_valore",lc),   f"CHF {c.get('valore_stimato',0):,}/anno" if c.get("valore_stimato") else "—"),
-                row(ct("f_followup",lc), fu_str, color=fu_color),
-                html.Div(style={"marginTop":"14px"}),
-                html.Div(ct("f_prodotto",lc),
-                         style={"fontSize":"0.72rem","fontWeight":"700","color":"#999","textTransform":"uppercase","letterSpacing":"0.06em","marginBottom":"6px"}),
-                html.Div(c.get("prodotto_contrattato","") or "—",
-                         style={"background":"#fde8e8","color":"#c0392b","padding":"8px 12px",
-                                "borderRadius":"8px","fontSize":"0.88rem","fontWeight":"600",
-                                "border":"1px solid #f5c6c0"} if c.get("prodotto_contrattato") else
-                               {"color":"#aaa","fontSize":"0.88rem"}),
-            ], width=7),
-        ]),
-
-        html.Hr(style={"margin":"18px 0"}),
-        html.H6(ct("sec_notes",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"8px"}),
-        html.Div(c.get("note","") or "—",
-                 style={"background":"#f8f9fb","borderRadius":"10px","padding":"14px",
-                        "fontSize":"0.88rem","color":"#444","lineHeight":"1.6",
-                        "whiteSpace":"pre-wrap","border":"1px solid #eaecf2"}),
-    ])
-
-    return True, f"👤 {nome}", body
+    upsert_client(c)
+    return "  ✦  ".join(msgs), (rn or 0)+1, _render_info_body(c,lc)
 
 # ── SAVE — FIX: tanca modal automàticament ───────────────────────────────────
 @callback(
@@ -792,6 +945,8 @@ def delete_flow(nd,nc,nok,nome_s,rn,lc):
     if tid=="btn-del-ok" and nome_s:
         delete_client(nome_s); return False, dash.no_update, None, (rn or 0)+1
     if isinstance(tid,dict) and tid.get("type")=="btn-delete":
+        if not (ctx.triggered or [{}])[0].get("value"):
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
         nome=tid["index"]
         return True, ct("del_text",lc).format(n=nome), nome, dash.no_update
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
