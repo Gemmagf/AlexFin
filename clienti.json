@@ -15,7 +15,13 @@
     "data_salvataggio": "2025-11-08",
     "stato": "chiuso",
     "prodotto_contrattato": "3° Pilastro Assicurativo + Protezione famiglia",
-    "note": "Cliente molto soddisfatto. Ha sottoscritto 3a assicurativo CHF 500/mese + polizza vita. Rinnovo previsto ottobre 2026."
+    "note": "Cliente molto soddisfatto. Ha sottoscritto 3a assicurativo CHF 500/mese + polizza vita. Rinnovo previsto ottobre 2026.",
+    "telefono": "",
+    "email": "",
+    "pipeline_stage": "chiuso",
+    "data_primo_contatto": "2025-11-08",
+    "data_prossimo_followup": "",
+    "valore_stimato": 0
   },
   {
     "nome": "Petra Müller",
@@ -33,7 +39,13 @@
     "data_salvataggio": "2025-12-14",
     "stato": "chiuso",
     "prodotto_contrattato": "Krankenkasse ottimizzata + 3a bancario",
-    "note": "Risparmio KK CHF 1.200/anno passando a modello Telmed franchigia 2500. Ha aperto 3a bancario CHF 400/mese."
+    "note": "Risparmio KK CHF 1.200/anno passando a modello Telmed franchigia 2500. Ha aperto 3a bancario CHF 400/mese.",
+    "telefono": "",
+    "email": "",
+    "pipeline_stage": "chiuso",
+    "data_primo_contatto": "2025-12-14",
+    "data_prossimo_followup": "",
+    "valore_stimato": 0
   },
   {
     "nome": "Luca Bernasconi",
@@ -51,7 +63,13 @@
     "data_salvataggio": "2026-01-22",
     "stato": "chiuso",
     "prodotto_contrattato": "Previdenza complementare + Assicurazione invalidità",
-    "note": "Lacuna previdenziale CHF 28.000/anno. Sottoscritto piano integrativo LPP volontario + AI privata. Pensionamento previsto 2033."
+    "note": "Lacuna previdenziale CHF 28.000/anno. Sottoscritto piano integrativo LPP volontario + AI privata. Pensionamento previsto 2033.",
+    "telefono": "",
+    "email": "",
+    "pipeline_stage": "chiuso",
+    "data_primo_contatto": "2026-01-22",
+    "data_prossimo_followup": "",
+    "valore_stimato": 0
   },
   {
     "nome": "Ana Popescu",
@@ -69,7 +87,13 @@
     "data_salvataggio": "2026-02-05",
     "stato": "chiuso",
     "prodotto_contrattato": "3° Pilastro bancario",
-    "note": "Expat romena, primo anno in Svizzera. Ha aperto 3a bancario CHF 250/mese. Follow-up previsto per KK complementare."
+    "note": "Expat romena, primo anno in Svizzera. Ha aperto 3a bancario CHF 250/mese. Follow-up previsto per KK complementare.",
+    "telefono": "",
+    "email": "",
+    "pipeline_stage": "chiuso",
+    "data_primo_contatto": "2026-02-05",
+    "data_prossimo_followup": "",
+    "valore_stimato": 0
   },
   {
     "nome": "Stefan Brunner",
@@ -87,24 +111,36 @@
     "data_salvataggio": "2026-03-10",
     "stato": "chiuso",
     "prodotto_contrattato": "Assicurazione protezione reddito + KK ottimizzata",
-    "note": "Indipendente senza 2° pilastro adeguato. Attivata polizza perdita di guadagno CHF 8.000/mese + riduzione KK CHF 1.800/anno."
+    "note": "Indipendente senza 2° pilastro adeguato. Attivata polizza perdita di guadagno CHF 8.000/mese + riduzione KK CHF 1.800/anno.",
+    "telefono": "",
+    "email": "",
+    "pipeline_stage": "chiuso",
+    "data_primo_contatto": "2026-03-10",
+    "data_prossimo_followup": "",
+    "valore_stimato": 0
   },
   {
     "nome": "Yuki Tanaka",
     "eta": 33,
     "sesso": "F",
-    "situazione": "Dipendente",
+    "telefono": "",
+    "email": "",
     "canton": "Basel-Stadt",
+    "lc": "en",
     "reddito_mensile": 6300,
+    "situazione": "Dipendente",
     "stato_civile": "Sposato/a",
     "figli": false,
     "n_figli": 0,
     "ipoteca": false,
     "tolleranza_rischio": "Media",
-    "lc": "en",
-    "data_salvataggio": "2026-04-02",
-    "stato": "da_chiudere",
-    "prodotto_contrattato": null,
-    "note": "Expat giapponese, lavora in farmaceutica. Molto interessata a 3a + KK complementare dentale. Incontro di follow-up fissato 28 aprile. Proposta da presentare: 3a assicurativo CHF 350/mese + complementare dental/vista."
+    "pipeline_stage": "lead",
+    "valore_stimato": 0,
+    "data_primo_contatto": "2026-04-02",
+    "data_prossimo_followup": "",
+    "prodotto_contrattato": "",
+    "note": "Expat giapponese, lavora in farmaceutica. Molto interessata a 3a + KK complementare dentale. Incontro di follow-up fissato 28 aprile. Proposta da presentare: 3a assicurativo CHF 350/mese + complementare dental/vista.",
+    "data_salvataggio": "2026-05-18",
+    "stato": "da_chiudere"
   }
 ]

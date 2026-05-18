@@ -362,6 +362,12 @@ app.layout = html.Div([
             dbc.Button(id="btn-del-ok",    color="danger"),
         ]),
     ], id="del-modal", is_open=False),
+    # Info / fitxa client modal
+    dbc.Modal([
+        dbc.ModalHeader(html.Span(id="info-title"),close_button=True,
+                        style={"background":"#1e2235","color":"white","borderRadius":"12px 12px 0 0"}),
+        dbc.ModalBody(html.Div(id="info-body")),
+    ], id="info-modal", size="lg", scrollable=True, is_open=False),
 ])
 
 # ── NAVBAR ───────────────────────────────────────────────────────────────────
@@ -515,7 +521,8 @@ def update_table(search,stage,canton,_r,lc):
             html.Td(html.Span(fu_str,style={"color":"#e74c3c","fontWeight":"700"} if is_past else {})),
             html.Td(c.get("prodotto_contrattato","") or "—",
                     style={"fontSize":"0.78rem","color":"#888","maxWidth":"160px","overflow":"hidden","textOverflow":"ellipsis","whiteSpace":"nowrap"}),
-            html.Td([dbc.Button("✏️",id={"type":"btn-edit",  "index":nome},size="sm",color="light",className="me-1 p-1"),
+            html.Td([dbc.Button("ℹ️",id={"type":"btn-info",  "index":nome},size="sm",color="light",className="me-1 p-1"),
+                     dbc.Button("✏️",id={"type":"btn-edit",  "index":nome},size="sm",color="light",className="me-1 p-1"),
                      dbc.Button("🗑️",id={"type":"btn-delete","index":nome},size="sm",color="light",className="p-1")],
                     style={"whiteSpace":"nowrap"}),
         ]))
@@ -540,8 +547,10 @@ def render_kanban(cs,lc):
             html.Div(c.get("nome","—"),className="kanban-card-name"),
             html.Div(f"{c.get('canton','—')} · CHF {c.get('reddito_mensile',0):,}/m",className="kanban-card-sub"),
             html.Div([html.Span(c.get("situazione",""),style={"fontSize":"0.72rem","color":"#aaa"}),
+                      dbc.Button("ℹ️",id={"type":"btn-info","index":c.get("nome","")},size="sm",color="light",
+                                 className="p-0 ms-1",style={"fontSize":"0.75rem"}),
                       dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",
-                                 className="p-0 ms-auto",style={"fontSize":"0.75rem"})],
+                                 className="p-0 ms-1",style={"fontSize":"0.75rem"})],
                      style={"display":"flex","alignItems":"center","marginTop":"6px"}),
         ],className="kanban-card") for c in by[key]]
         tv=sum(c.get("valore_stimato",0) for c in by[key])
@@ -580,7 +589,8 @@ def render_agenda(cs,lc):
                       html.Div(c.get("note","")[:80]+("…" if len(c.get("note",""))>80 else ""),
                                style={"fontSize":"0.72rem","color":"#bbb","marginTop":"2px"}) if c.get("note") else html.Div()]),
             html.Div([_pill(c.get("pipeline_stage","lead"),lc),
-                      dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",className="ms-2 p-1")],
+                      dbc.Button("ℹ️",id={"type":"btn-info","index":c.get("nome","")},size="sm",color="light",className="ms-2 p-1"),
+                      dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",className="ms-1 p-1")],
                      style={"marginLeft":"auto","display":"flex","alignItems":"center"}),
         ],className="agenda-item",style={"borderLeftColor":color}) for c,d in items]
         return _sec(f"{title} ({len(items)})",rows)
@@ -590,7 +600,8 @@ def render_agenda(cs,lc):
         html.Div([html.Div(c.get("nome","—"),className="agenda-name"),
                   html.Div(f"{c.get('situazione','—')} · {c.get('canton','—')}",className="agenda-sub")]),
         html.Div([_pill(c.get("pipeline_stage","lead"),lc),
-                  dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",className="ms-2 p-1")],
+                  dbc.Button("ℹ️",id={"type":"btn-info","index":c.get("nome","")},size="sm",color="light",className="ms-2 p-1"),
+                  dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",className="ms-1 p-1")],
                  style={"marginLeft":"auto","display":"flex","alignItems":"center"}),
     ],className="agenda-item",style={"borderLeftColor":"#ddd"}) for c in no_fu]
 
@@ -614,32 +625,121 @@ def modal_labels(lc):
     lc=lc or "it"
     return ct("btn_cancel",lc),ct("btn_save",lc),ct("btn_cancel",lc),ct("btn_delete",lc),ct("del_title",lc)
 
-# ── OPEN MODAL ───────────────────────────────────────────────────────────────
-# FIX: btn-new és a la navbar (sempre DOM). list-new-btn és dins el tab
-#       → ambdós funcionen perquè suppress_callback_exceptions=True
+# ── OPEN EDIT MODAL — btn-new sempre al DOM (navbar) ─────────────────────────
 @callback(
     Output("edit-modal","is_open"),
     Output("modal-body","children"),
     Output("modal-title","children"),
     Output("edit-nome","data"),
-    Input("btn-new",                       "n_clicks"),
-    Input("list-new-btn",                  "n_clicks"),
-    Input({"type":"btn-edit","index":ALL}, "n_clicks"),
+    Input("btn-new",                       "n_clicks"),   # navbar — sempre DOM ✅
+    Input({"type":"btn-edit","index":ALL}, "n_clicks"),   # pattern-matching ✅
     Input("btn-cancel",                    "n_clicks"),
     Input("btn-save",                      "n_clicks"),
     State("crm-lang","data"),
     prevent_initial_call=True,
 )
-def open_modal(n_new, n_list, n_edit, n_cancel, n_save, lc):
+def open_modal(n_new, n_edit, n_cancel, n_save, lc):
     lc=lc or "it"; tid=ctx.triggered_id
     if tid in ("btn-cancel","btn-save") or tid is None:
         return False, dash.no_update, dash.no_update, None
-    if tid in ("btn-new","list-new-btn"):
+    if tid == "btn-new":
         return True, _form(None,lc), ct("modal_new",lc), None
     if isinstance(tid,dict) and tid.get("type")=="btn-edit":
         nome=tid["index"]; c=get_client(nome)
         return True, _form(c,lc), f"{ct('modal_edit',lc)} — {nome}", nome
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+
+# ── INFO FITXA CLIENT ─────────────────────────────────────────────────────────
+@callback(
+    Output("info-modal","is_open"),
+    Output("info-title","children"),
+    Output("info-body","children"),
+    Input({"type":"btn-info","index":ALL},"n_clicks"),
+    State("crm-lang","data"),
+    prevent_initial_call=True,
+)
+def open_info(n_list, lc):
+    lc=lc or "it"; tid=ctx.triggered_id
+    if not isinstance(tid,dict) or not any(n for n in (n_list or []) if n):
+        return dash.no_update, dash.no_update, dash.no_update
+    nome=tid["index"]; c=get_client(nome)
+    if not c: return dash.no_update, dash.no_update, dash.no_update
+
+    # Dades
+    def row(label,value,color=None):
+        return html.Div([
+            html.Span(label,style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
+                                   "textTransform":"uppercase","letterSpacing":"0.06em","minWidth":"160px","display":"inline-block"}),
+            html.Span(str(value) if value else "—",
+                      style={"fontWeight":"600","color":color or "#1e2235"}),
+        ], style={"padding":"7px 0","borderBottom":"1px solid #f5f5f5"})
+
+    stage=c.get("pipeline_stage","lead")
+    color_s=STAGE_COLORS.get(stage,"#888")
+    fd=_fu(c); today=date.today()
+    fu_color="#e74c3c" if (fd and fd<today) else ("#f39c12" if fd==today else "#1e2235")
+    fu_str=fd.strftime("%d/%m/%Y") if fd else "—"
+
+    # Anys com a client
+    try:
+        d0=date.fromisoformat(c.get("data_primo_contatto","") or c.get("data_salvataggio",""))
+        delta=(today-d0).days
+        years=delta//365; months=(delta%365)//30
+        durada_str=f"{years}a {months}m" if years else f"{months}m" if months else f"{delta}d"
+    except Exception:
+        durada_str="—"
+
+    body=html.Div([
+        # Header colorat amb fase
+        html.Div([
+            html.Span(slabel(stage,lc),className="stage-pill",
+                      style={"background":color_s+"22","color":color_s,"border":f"1px solid {color_s}55","fontSize":"0.85rem","padding":"5px 14px"}),
+            html.Span(f"  ·  {ct('f_data1',lc)}: {c.get('data_primo_contatto','—')}",
+                      style={"fontSize":"0.82rem","color":"#888","marginLeft":"12px"}),
+            html.Span(f"  ·  {durada_str} nel CRM",style={"fontSize":"0.82rem","color":"#888"}),
+        ], style={"marginBottom":"20px"}),
+
+        dbc.Row([
+            dbc.Col([
+                html.H6("👤 Profilo", style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+                row(ct("f_eta",lc),     f"{c.get('eta','—')} anni"),
+                row(ct("f_sesso",lc),   ct("f_sesso_m",lc) if c.get("sesso")=="M" else ct("f_sesso_f",lc)),
+                row(ct("f_canton",lc),  c.get("canton","—")),
+                row(ct("f_situ",lc),    c.get("situazione","—")),
+                row(ct("f_sc",lc),      c.get("stato_civile","—")),
+                row(ct("f_figli",lc),   f"{c.get('n_figli',0)} {ct('f_nfigli',lc).lower()}" if c.get("figli") else ct("no",lc)),
+                row(ct("f_ipoteca",lc), ct("yes",lc) if c.get("ipoteca") else ct("no",lc)),
+                row(ct("f_rischio",lc), c.get("tolleranza_rischio","—")),
+            ], width=5),
+            dbc.Col([
+                html.H6("💼 CRM & Prodotti", style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+                row(ct("f_reddito",lc),  f"CHF {c.get('reddito_mensile',0):,}/mese"),
+                row(ct("f_lang",lc),     c.get("lc","—").upper()),
+                row(ct("f_tel",lc),      c.get("telefono","") or "—"),
+                row("Email",             c.get("email","") or "—"),
+                row(ct("f_valore",lc),   f"CHF {c.get('valore_stimato',0):,}/anno" if c.get("valore_stimato") else "—"),
+                row(ct("f_followup",lc), fu_str, color=fu_color),
+                html.Div(style={"marginTop":"14px"}),
+                html.Div(ct("f_prodotto",lc),
+                         style={"fontSize":"0.72rem","fontWeight":"700","color":"#999","textTransform":"uppercase","letterSpacing":"0.06em","marginBottom":"6px"}),
+                html.Div(c.get("prodotto_contrattato","") or "—",
+                         style={"background":"#fde8e8","color":"#c0392b","padding":"8px 12px",
+                                "borderRadius":"8px","fontSize":"0.88rem","fontWeight":"600",
+                                "border":"1px solid #f5c6c0"} if c.get("prodotto_contrattato") else
+                               {"color":"#aaa","fontSize":"0.88rem"}),
+            ], width=7),
+        ]),
+
+        html.Hr(style={"margin":"18px 0"}),
+        html.H6(ct("sec_notes",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"8px"}),
+        html.Div(c.get("note","") or "—",
+                 style={"background":"#f8f9fb","borderRadius":"10px","padding":"14px",
+                        "fontSize":"0.88rem","color":"#444","lineHeight":"1.6",
+                        "whiteSpace":"pre-wrap","border":"1px solid #eaecf2"}),
+    ])
+
+    return True, f"👤 {nome}", body
 
 # ── SAVE — FIX: tanca modal automàticament ───────────────────────────────────
 @callback(

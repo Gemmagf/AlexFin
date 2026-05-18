@@ -33,7 +33,7 @@ server = app.server
 
 server.secret_key = os.environ.get("SECRET_KEY", "alexfin-dev-secret-change-in-prod")
 AUTH_USER = os.environ.get("AUTH_USER", "alex")
-AUTH_PASS = os.environ.get("AUTH_PASS", "svag2026")
+AUTH_PASS = os.environ.get("AUTH_PASS", "go")
 
 _LOGIN_HTML = """<!DOCTYPE html>
 <html lang="it">
