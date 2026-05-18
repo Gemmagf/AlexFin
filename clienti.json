@@ -21,7 +21,10 @@
     "pipeline_stage": "chiuso",
     "data_primo_contatto": "2025-11-08",
     "data_prossimo_followup": "",
-    "valore_stimato": 0
+    "valore_stimato": 0,
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
   },
   {
     "nome": "Petra Müller",
@@ -37,15 +40,18 @@
     "tolleranza_rischio": "Alta",
     "lc": "de",
     "data_salvataggio": "2025-12-14",
-    "stato": "chiuso",
+    "stato": "perso",
     "prodotto_contrattato": "Krankenkasse ottimizzata + 3a bancario",
     "note": "Risparmio KK CHF 1.200/anno passando a modello Telmed franchigia 2500. Ha aperto 3a bancario CHF 400/mese.",
     "telefono": "",
     "email": "",
-    "pipeline_stage": "chiuso",
+    "pipeline_stage": "perso",
     "data_primo_contatto": "2025-12-14",
     "data_prossimo_followup": "",
-    "valore_stimato": 0
+    "valore_stimato": 0,
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
   },
   {
     "nome": "Luca Bernasconi",
@@ -69,7 +75,10 @@
     "pipeline_stage": "chiuso",
     "data_primo_contatto": "2026-01-22",
     "data_prossimo_followup": "",
-    "valore_stimato": 0
+    "valore_stimato": 0,
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
   },
   {
     "nome": "Ana Popescu",
@@ -93,7 +102,10 @@
     "pipeline_stage": "chiuso",
     "data_primo_contatto": "2026-02-05",
     "data_prossimo_followup": "",
-    "valore_stimato": 0
+    "valore_stimato": 0,
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
   },
   {
     "nome": "Stefan Brunner",
@@ -117,7 +129,10 @@
     "pipeline_stage": "chiuso",
     "data_primo_contatto": "2026-03-10",
     "data_prossimo_followup": "",
-    "valore_stimato": 0
+    "valore_stimato": 0,
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
   },
   {
     "nome": "Yuki Tanaka",
@@ -134,13 +149,47 @@
     "n_figli": 0,
     "ipoteca": false,
     "tolleranza_rischio": "Media",
-    "pipeline_stage": "lead",
+    "pipeline_stage": "contattato",
     "valore_stimato": 0,
     "data_primo_contatto": "2026-04-02",
     "data_prossimo_followup": "",
     "prodotto_contrattato": "",
     "note": "Expat giapponese, lavora in farmaceutica. Molto interessata a 3a + KK complementare dentale. Incontro di follow-up fissato 28 aprile. Proposta da presentare: 3a assicurativo CHF 350/mese + complementare dental/vista.",
     "data_salvataggio": "2026-05-18",
+    "stato": "da_chiudere",
+    "notes_log": [],
+    "alerta_motiu": "",
+    "prodotti_sel": []
+  },
+  {
+    "nome": "Gemma",
+    "eta": 35,
+    "sesso": "F",
+    "telefono": "",
+    "email": "",
+    "canton": "Uri",
+    "lc": "en",
+    "reddito_mensile": 5000,
+    "situazione": "Dipendente",
+    "stato_civile": "Single",
+    "figli": true,
+    "n_figli": 3,
+    "ipoteca": true,
+    "tolleranza_rischio": "Media",
+    "pipeline_stage": "proposta",
+    "valore_stimato": 0,
+    "data_primo_contatto": "2026-05-18",
+    "data_prossimo_followup": "2026-05-28",
+    "prodotti_sel": [
+      "3p",
+      "vita",
+      "lpp"
+    ],
+    "prodotto_contrattato": "3° Pilastro  ·  Assicurazione Vita  ·  Ottimizzazione LPP",
+    "note": "++",
+    "data_salvataggio": "2026-05-18",
+    "notes_log": [],
+    "alerta_motiu": "",
     "stato": "da_chiudere"
   }
 ]

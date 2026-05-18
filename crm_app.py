@@ -1282,108 +1282,332 @@ def _prod_detail(prod_id, c, lc):
     lc = lc or "it"
     eta      = int(c.get("eta") or 40)
     reddito  = int(c.get("reddito_mensile") or 0)
+    reddito_ann = reddito * 12
     situ     = c.get("situazione","")
     rischio  = c.get("tolleranza_rischio","Media")
     has_fil  = bool(c.get("figli"))
     has_ipo  = bool(c.get("ipoteca"))
     n_figli  = int(c.get("n_figli") or 0)
-    nome     = c.get("nome","—")
+    nome     = c.get("nome","—") if c.get("nome") else "—"
+    no_client = (nome == "—")   # vista genèrica sense client
 
     def pv(m, anni, rate=0.015):
         if anni <= 0 or m <= 0: return 0
         return int(m * 12 * ((1+rate)**anni - 1) / rate)
 
+    # ── Labels multiidioma ───────────────────────────────────────────────────
+    _L = {
+        "why":   {"it":"Perché è rilevante","de":"Warum relevant","fr":"Pourquoi pertinent",
+                  "en":"Why it matters","ca":"Per què és rellevant"},
+        "situ":  {"it":"Analisi della situazione","de":"Situationsanalyse","fr":"Analyse de situation",
+                  "en":"Situation analysis","ca":"Anàlisi de la situació"},
+        "mod":   {"it":"Modalità disponibili","de":"Verfügbare Modelle","fr":"Modalités disponibles",
+                  "en":"Available options","ca":"Modalitats disponibles"},
+        "prop":  {"it":"Proposta concreta","de":"Konkreter Vorschlag","fr":"Proposition concrète",
+                  "en":"Concrete proposal","ca":"Proposta concreta"},
+        "args":  {"it":"Argomenti di vendita","de":"Verkaufsargumente","fr":"Arguments de vente",
+                  "en":"Sales arguments","ca":"Arguments de venda"},
+        "now":   {"it":"Perché agire ora","de":"Warum jetzt handeln","fr":"Pourquoi agir maintenant",
+                  "en":"Why act now","ca":"Per què actuar ara"},
+        "next":  {"it":"Prossimi passi","de":"Nächste Schritte","fr":"Prochaines étapes",
+                  "en":"Next steps","ca":"Propers passos"},
+        "for":   {"it":"per","de":"für","fr":"pour","en":"for","ca":"per a"},
+        "year":  {"it":"anno","de":"Jahr","fr":"an","en":"year","ca":"any"},
+        "month": {"it":"mese","de":"Monat","fr":"mois","en":"month","ca":"mes"},
+    }
+    def lbl(k): return _L[k].get(lc, _L[k]["it"])
+
+    def _why_box(points):
+        """Caixa verda de 'per què és rellevant per aquest client'."""
+        return html.Div([
+            html.Div(lbl("why") + (f" {lbl('for')} {nome}" if not no_client else ""),
+                     style={"fontSize":"0.7rem","fontWeight":"700","color":"#2d6a4f",
+                            "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"8px"}),
+            html.Ul([html.Li(p, style={"fontSize":"0.87rem","color":"#1e3a2a","marginBottom":"5px","lineHeight":"1.5"})
+                     for p in points if p],
+                    style={"paddingLeft":"20px","margin":"0"}),
+        ], style={"background":"#f0fdf4","border":"1px solid #bbf7d0","borderRadius":"10px",
+                  "padding":"14px 16px","marginBottom":"14px"})
+
+    def _args_box(points):
+        """Caixa taronja d'arguments de venda."""
+        return html.Div([
+            html.Div(lbl("args"),
+                     style={"fontSize":"0.7rem","fontWeight":"700","color":"#92400e",
+                            "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"8px"}),
+            html.Ul([html.Li(p, style={"fontSize":"0.87rem","color":"#451a03","marginBottom":"5px","lineHeight":"1.5"})
+                     for p in points if p],
+                    style={"paddingLeft":"20px","margin":"0"}),
+        ], style={"background":"#fffbeb","border":"1px solid #fde68a","borderRadius":"10px",
+                  "padding":"14px 16px","marginBottom":"14px"})
+
+    def _now_box(points):
+        """Caixa vermella 'per què ara'."""
+        return html.Div([
+            html.Div(lbl("now"),
+                     style={"fontSize":"0.7rem","fontWeight":"700","color":"#991b1b",
+                            "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"8px"}),
+            html.Ul([html.Li(p, style={"fontSize":"0.87rem","color":"#450a0a","marginBottom":"5px","lineHeight":"1.5"})
+                     for p in points if p],
+                    style={"paddingLeft":"20px","margin":"0"}),
+        ], style={"background":"#fef2f2","border":"1px solid #fecaca","borderRadius":"10px",
+                  "padding":"14px 16px","marginBottom":"14px"})
+
+    def _next_box(steps):
+        """Caixa blava de propers passos."""
+        return html.Div([
+            html.Div(lbl("next"),
+                     style={"fontSize":"0.7rem","fontWeight":"700","color":"#1e40af",
+                            "textTransform":"uppercase","letterSpacing":"0.07em","marginBottom":"8px"}),
+            html.Ol([html.Li(s, style={"fontSize":"0.87rem","color":"#1e2235","marginBottom":"5px","lineHeight":"1.5"})
+                     for s in steps if s],
+                    style={"paddingLeft":"20px","margin":"0"}),
+        ], style={"background":"#eff6ff","border":"1px solid #bfdbfe","borderRadius":"10px",
+                  "padding":"14px 16px","marginTop":"14px"})
+
     # ── 3° Pilastro ──────────────────────────────────────────────────────────
     if prod_id == "3p":
         anni     = max(65 - eta, 0)
-        max_ann  = 35280 if situ=="Indipendente" else 7056
+        max_ann  = 35280 if situ == "Indipendente" else 7056
         max_mese = max_ann // 12
         sugg = (max_mese if reddito >= 8000 else
                 400     if reddito >= 5000 else
                 200     if reddito >= 3000 else 100)
-        is_ass = has_fil or has_ipo
-        rows_mod = [
-            ("Conto bancario (3a)", "Versamenti flessibili, nessun vincolo vita. Rendimento tasso di mercato.",
-             "CHF 0 spese base", not is_ass),
-            ("Assicurazione (3a)", "Premio fisso, include copertura vita/invalidità integrata. Riscatto garantito.",
-             f"da CHF {sugg}/mese", is_ass),
+        is_ass   = has_fil or has_ipo
+        risp_ann = int(sugg * 12 * (0.35 if reddito > 8000 else 0.28 if reddito > 5000 else 0.22))
+        proj     = [(m, pv(m, anni)) for m in sorted({100, 200, sugg, max_mese}) if m > 0]
+        cap_proj = pv(sugg, anni)
+
+        why_pts = [
+            f"Età: {eta} anni — rimangono {anni} anni utili per capitalizzare",
+            f"Risparmio fiscale immediato: circa CHF {risp_ann:,}/anno deducibili dal reddito imponibile",
+            f"Capitale stimato a 65 anni con CHF {sugg}/mese: CHF {cap_proj:,} (tasso 1.5%/a)",
+            "Complementa il 1° e 2° pilastro — colma il gap previdenziale privato" if not has_fil and not has_ipo else None,
+            f"Con {n_figli} figlio/i: la formula assicurativa include copertura vita integrata" if has_fil else None,
+            "Con ipoteca: ammortamento indiretto via 3° pilastro (doppio vantaggio fiscale)" if has_ipo else None,
+            "Autonomo: massimale CHF 35.280/anno (5× quello dei dipendenti)" if situ == "Indipendente" else None,
         ]
-        proj = [(m, pv(m, anni)) for m in sorted({100,200,sugg,max_mese}) if m > 0]
+        args_pts = [
+            "Unico strumento che riduce le tasse OGGI e costruisce capitale per DOMANI",
+            f"CHF {sugg}/mese = CHF {risp_ann:,}/anno recuperati in meno tasse — l'investimento si ripaga parzialmente da solo",
+            "Rendimento netto superiore al conto corrente grazie all'effetto fiscale composto",
+            "Formula assicurativa: se accade qualcosa, la famiglia/ipoteca è protetta — continuità garantita" if is_ass else
+            "Formula bancaria: massima flessibilità, nessun vincolo vita — ideale per profili conservativi",
+            "Vincolo a 65 anni = protezione automatica dal prelievo impulsivo",
+        ]
+        now_pts = [
+            f"Ogni anno senza 3° pilastro = CHF {risp_ann:,} di deduzioni fiscali perse per sempre",
+            f"Avviare oggi a {eta} anni con CHF {sugg}/mese: proiezione CHF {cap_proj:,} a 65 anni",
+            f"Aspettare 5 anni riduce il capitale finale di circa CHF {pv(sugg,anni)-pv(sugg,max(0,anni-5)):,}",
+            "I tassi attuali sui conti 3a sono storicamente elevati — conveniente bloccarli ora",
+        ]
+        next_steps = [
+            f"Calcolare la deduzione fiscale esatta in base al comune di residenza",
+            f"Scegliere la formula: {'assicurativa (protegge famiglia/ipoteca)' if is_ass else 'bancaria (flessibile)'} — presentare confronto",
+            "Aprire il conto/polizza 3a — versamento iniziale anche minimo (CHF 100)",
+            "Pianificare il versamento mensile automatico: CHF " + str(sugg),
+            "Rivedere annualmente per aumentare il versamento in caso di aumento di reddito",
+        ]
+        rows_mod = [
+            ("Conto bancario 3a", "Versamenti flessibili, nessun vincolo vita. Rendimento tasso di mercato.",
+             "CHF 0 spese base", not is_ass),
+            ("Assicurazione 3a", "Premio fisso mensile. Copertura vita/invalidità integrata. Riscatto garantito a scadenza.",
+             f"da CHF {sugg}/mese", is_ass),
+            ("3a investito (fondi)", "Versamento in fondi azionari/obbligazionari. Rendimento potenzialmente superiore ma variabile.",
+             "spese gestione ~0.5-1%/a", reddito >= 7000),
+        ]
         return html.Div([
-            _sec_pd("Modalitats disponibles", [_mod_table(rows_mod)]),
-            _sec_pd(f"Recomanació per {nome}", [_rec_box([
-                f"📌 Import recomanat: CHF {sugg}/mes  (CHF {sugg*12:,}/any)",
-                f"   → Màxim deduïble: CHF {max_mese}/mes  (CHF {max_ann:,}/any)",
-                f"   → Anys restants fins 65: {anni}",
-                f"   → Avantatge fiscal: deduccions directes de la base imposable",
-                f"   → Modalitat: {'Assegurança (protecció vida inclosa)' if is_ass else 'Compte bancari (més flexible)'}",
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table(rows_mod)]),
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Importo raccomandato: CHF {sugg}/mese  (CHF {sugg*12:,}/anno)",
+                f"  Massimo deducibile: CHF {max_mese}/mese  (CHF {max_ann:,}/anno)",
+                f"  Anni rimanenti fino a 65: {anni}",
+                f"  Risparmio fiscale annuo stimato: CHF {risp_ann:,}",
+                f"  Formula: {'Assicurativa — copertura vita inclusa' if is_ass else 'Bancaria — massima flessibilità'}",
             ])]),
-            _sec_pd("Projecció capital a 65 anys (taxa 1.5%/any)", [_proj_table(proj, sugg)]),
+            _sec_pd("Proiezione capitale a 65 anni (tasso 1.5%/anno)", [_proj_table(proj, sugg)]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Assicurazione Vita ───────────────────────────────────────────────────
     elif prod_id == "vita":
-        cap     = max(200_000, reddito * 12 * 5)
-        prem_p  = max(40,  int(cap / 1000 * 0.7))
-        prem_m  = max(200, int(cap / 1000 * 2.5))
+        cap      = max(200_000, reddito * 12 * 5)
+        prem_p   = max(40,  int(cap / 1000 * 0.7))
+        prem_m   = max(200, int(cap / 1000 * 2.5))
         rec_puro = eta < 45 or has_ipo
+        income_y = reddito * 12
+
+        why_pts = [
+            f"Reddito annuo da proteggere: CHF {income_y:,} — senza copertura, la famiglia perde tutto",
+            f"Capitale consigliato (regola 5× reddito annuo): CHF {cap:,}",
+            f"Con {n_figli} figlio/i: necessità di proteggere il loro futuro fino all'autonomia" if has_fil else None,
+            "Con ipoteca: il decesso senza copertura lascia la famiglia con il debito — rischio di perdere la casa" if has_ipo else None,
+            f"Età {eta} anni: premio ancora molto competitivo — ogni anno che passa aumenta il costo" if eta < 50 else
+            f"Età {eta} anni: copertura ancora accessibile ma conveniente attivarla ora prima che salga ulteriormente",
+        ]
+        args_pts = [
+            f"Premio rischio puro da CHF {prem_p}/mese: protezione CHF {cap:,} al costo di un pranzo",
+            "La famiglia non deve rinunciare alla casa o cambiare stile di vita in caso di evento grave",
+            f"CHF {cap:,} di capitale — copre debiti, mutuo, mantenimento figli per anni",
+            "Formula risparmio misto: duplice funzione — protezione OGGI + capitale garantito a scadenza" if not rec_puro else
+            "Rischio puro: massima copertura con il premio più basso possibile — efficienza assoluta",
+            "Detraibile fiscalmente come previdenza vincolata (3a) nella formula assicurativa mista",
+        ]
+        now_pts = [
+            f"A {eta} anni il premio rischio puro è circa CHF {prem_p}/mese — a 50 anni sarà il doppio",
+            "Nessuna assicurazione vita = il rischio è già attivo, la protezione non ancora",
+            "In caso di evento, la pratica richiede settimane — non si può attivare retroattivamente",
+            "Periodo di carenza tipico: 2 anni — ogni mese di ritardo è un mese senza copertura reale" if eta > 40 else
+            "Giovani: condizioni mediche peggiorano con l'età — ora è il momento migliore per assicurarsi",
+        ]
+        next_steps = [
+            f"Definire il capitale da assicurare (minimo CHF {cap:,} basato sul reddito attuale)",
+            f"Scegliere la formula: {'rischio puro (priorità copertura)' if rec_puro else 'risparmio misto (copertura + capitale)'}",
+            "Compilare il questionario medico — condizioni attuali sono favorevoli",
+            "Confrontare 2-3 offerte: premi variano fino al 30% tra compagnie",
+            "Nominare i beneficiari in modo chiaro e documentato",
+        ]
         return html.Div([
-            _sec_pd("Modalitats", [_mod_table([
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table([
                 ("Rischio puro (term life)", "Solo copertura decesso. Premio basso, nessun risparmio.",
-                 f"da CHF {prem_p}/mes", rec_puro),
-                ("Risparmio misto", "Copertura + componente risparmio. Riscatto garantito a scadenza.",
-                 f"da CHF {prem_m}/mes", not rec_puro),
+                 f"da CHF {prem_p}/mese", rec_puro),
+                ("Risparmio misto", "Copertura decesso + componente risparmio. Riscatto garantito a scadenza.",
+                 f"da CHF {prem_m}/mese", not rec_puro),
+                ("Vita intera", "Copertura a vita (non a termine). Premio più alto, riscatto crescente.",
+                 "da CHF " + str(int(prem_m * 1.4)) + "/mese", False),
             ])]),
-            _sec_pd(f"Recomanació per {nome}", [_rec_box([
-                f"📌 Capital assegurat recomanat: CHF {cap:,}",
-                f"   → Regla: 5× reddito annuo = CHF {reddito*12*5:,}",
-                (f"   → Amb {n_figli} fill/s: mínim CHF 200.000" if has_fil else ""),
-                (f"   → Amb hipoteca: cobrir almenys el deute pendent" if has_ipo else ""),
-                f"   → Modalitat: {'Rischio puro — premi baixos, màxima cobertura' if rec_puro else 'Risparmio misto — també estalvi a llarg termini'}",
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Capitale assicurato raccomandato: CHF {cap:,}",
+                f"  Regola: 5× reddito annuo = CHF {income_y * 5:,}",
+                f"  Con {n_figli} figlio/i: minimo CHF 200.000" if has_fil else "",
+                f"  Con ipoteca: coprire almeno il debito residuo" if has_ipo else "",
+                f"  Formula: {'Rischio puro — premi bassi, massima copertura' if rec_puro else 'Risparmio misto — copertura + risparmio a lungo termine'}",
+                f"  Premio indicativo: da CHF {prem_p if rec_puro else prem_m}/mese",
             ])]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Assicurazione Invalidità ─────────────────────────────────────────────
     elif prod_id == "ai":
-        ai_st = int(reddito * 0.60)
-        gap   = max(0, reddito - ai_st)
-        ind   = situ == "Indipendente"
+        ai_st    = int(reddito * 0.60)
+        gap      = max(0, reddito - ai_st)
+        ind      = situ == "Indipendente"
+        gap_ann  = gap * 12
+        prem_sal = max(80, gap // 10)
+        prem_ind = max(150, gap // 8)
+
+        why_pts = [
+            f"Reddito mensile attuale: CHF {reddito:,} — in caso di invalidità l'AI statale copre solo il 60%",
+            f"Gap mensile scoperto: CHF {gap:,} ({gap_ann:,}/anno) — da coprire con assicurazione privata",
+            "AUTONOMO: nessuna AI automatica — rischio di perdere tutto il reddito in caso di incapacità lavorativa" if ind else None,
+            "Salariato: l'AI statale copre il 60% — il restante 40% è a carico del lavoratore" if not ind else None,
+            f"Con {n_figli} figlio/i: il gap di reddito impatta direttamente il mantenimento familiare" if has_fil else None,
+            f"Con ipoteca: CHF {gap:,}/mese di gap può rendere impossibile pagare la rata del mutuo" if has_ipo else None,
+        ]
+        args_pts = [
+            f"Per CHF {prem_ind if ind else prem_sal}/mese di premio si proteggono CHF {gap:,}/mese di reddito",
+            "L'invalidità è 5× più probabile del decesso prima dei 65 anni — statisticamente il rischio principale",
+            "Senza copertura: scenario peggiore = perdita reddito + debiti accumulati durante la malattia",
+            "La copertura integra perfettamente l'AI statale: insieme arrivano al 80-90% del reddito",
+            "Autonomi: questa polizza è il vero 'secondo pilastro' privato — fondamentale" if ind else
+            "Periodo di attesa tipico: 2 anni AI — la polizza copre subito dopo il periodo di carenza LPP",
+        ]
+        now_pts = [
+            "Il 40% delle persone sperimenta un'invalidità di lunga durata prima dei 65 anni",
+            f"Ogni mese senza copertura = CHF {gap:,} scoperti in caso di evento",
+            "Condizioni di salute attuali permettono tariffe ottimali — con l'età i premi aumentano",
+            "URGENTE: autonomo senza AI statale — massima priorità" if ind else
+            "Rinnovo annuale del contratto di lavoro: la copertura LPP potrebbe cambiare",
+        ]
+        next_steps = [
+            f"Richiedere l'estratto AI attuale per conoscere la rendita stimata",
+            f"Calcolare il gap esatto: reddito CHF {reddito:,} − AI stimata CHF {ai_st:,} = CHF {gap:,}/mese",
+            f"Scegliere il periodo di attesa (30/60/90/180 giorni) in base alle riserve liquide disponibili",
+            f"Formula {'autonomi' if ind else 'complementare AI'}: coprire CHF {gap:,}/mese",
+            "Confrontare 2-3 compagnie — premi e condizioni variano significativamente",
+        ]
         return html.Div([
-            _sec_pd("Modalitats", [_mod_table([
-                ("Complement AI (assalariats)", "Complementa l'AI estatal. Cobreix la llacuna fins al 80-90% del salari.",
-                 f"da CHF {max(80, gap//10)}/mes", not ind),
-                ("Cobertura autònoms", "Cobertura completa per a treballadors autònoms (sense AI automàtica).",
-                 f"da CHF {max(150, gap//8)}/mes", ind),
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table([
+                ("Complemento AI (dipendenti)", "Integra l'AI statale fino all'80-90% del reddito. Periodo di attesa personalizzabile.",
+                 f"da CHF {prem_sal}/mese", not ind),
+                ("Copertura autonomi", "Copertura completa per lavoratori indipendenti. Sostituisce l'AI statale mancante.",
+                 f"da CHF {prem_ind}/mese", ind),
+                ("Diaria malattia", "Prestazione giornaliera durante malattia/incidente. Copre i primi mesi prima dell'AI.",
+                 "da CHF 30-60/giorno", True),
             ])]),
-            _sec_pd(f"Anàlisi llacuna per {nome}", [_rec_box([
-                f"📌 Ingressos mensuals: CHF {reddito:,}",
-                f"   → Cobertura AI estatal (~60%): CHF {ai_st:,}/mes",
-                f"   → Llacuna a assegurar: CHF {gap:,}/mes",
-                f"   → Cobertura recomanada: CHF {gap:,}/mes complement AI",
-                ("   ⚠️  Autònom: cap AI automàtica → PRIORITAT ALTA" if ind else ""),
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Reddito mensile: CHF {reddito:,}",
+                f"  Copertura AI statale (~60%): CHF {ai_st:,}/mese",
+                f"  Gap da assicurare: CHF {gap:,}/mese  (CHF {gap_ann:,}/anno)",
+                f"  Formula raccomandata: {'Copertura autonomi — PRIORITÀ ALTA' if ind else 'Complemento AI dipendenti'}",
+                f"  Premio indicativo: da CHF {prem_ind if ind else prem_sal}/mese",
             ], color="#c0392b" if ind else "#1e40af")]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Pianificazione Ipotecaria ────────────────────────────────────────────
     elif prod_id == "ipoteca":
-        rec_mod = ("SARON" if rischio=="Alta" else
-                   "Fisso 5 anni" if rischio=="Media" else "Fisso 10 anni")
+        rec_mod = ("SARON" if rischio == "Alta" else
+                   "Fisso 5 anni" if rischio == "Media" else "Fisso 10 anni")
+        cap_3p_ind = pv(sugg_3p := min(max_3p := (35280 if situ=="Indipendente" else 7056)//12, 500), anni_3p := max(65-eta,0))
+
+        why_pts = [
+            "In Svizzera il 65% delle famiglie ha un'ipoteca — strutturarla bene può risparmiare decine di migliaia di CHF",
+            f"Profilo di rischio {rischio}: il modello ipotecario ottimale cambia significativamente",
+            "Ammortamento indiretto via 3° pilastro: strategia svizzera per eccellenza — doppio vantaggio fiscale",
+            f"Con ipoteca attiva: ogni punto percentuale di tasso = migliaia di CHF di differenza all'anno" if has_ipo else
+            "Pianificare PRIMA dell'acquisto permette di negoziare meglio e strutturare il finanziamento ottimale",
+            f"A {eta} anni: {anni_3p} anni per accumulare capitale 3° pilastro parallelo al mutuo" if anni_3p > 0 else None,
+        ]
+        args_pts = [
+            f"Modello {rec_mod}: adatto al profilo di rischio {rischio} del cliente",
+            "Ammortamento indiretto: si mantiene la deducibilità degli interessi ipotecari + si deduce il 3° pilastro",
+            "Confrontando 3 istituti si risparmiano tipicamente CHF 2.000-5.000/anno sullo stesso mutuo",
+            "Fissare ora un tasso basso a lungo termine vs rischio di aumenti futuri (SARON può variare)",
+            "Il capitale del 3° pilastro a 65 anni è spesso superiore al debito ipotecario residuo — asset netto positivo",
+        ]
+        now_pts = [
+            "I tassi sono in fase di stabilizzazione — finestra favorevole per fissare condizioni",
+            "Rinnovo imminente? Negoziare 3-6 mesi prima per avere potere contrattuale massimo",
+            "SARON in calo: momento per valutare passaggio a fisso prima di eventuali inversioni",
+            "Ogni mese di ritardo nella strutturazione = mancate deduzioni fiscali cumulate",
+        ]
+        next_steps = [
+            f"Richiedere offerte da minimo 3 istituti (banche + compagnie assicurative)",
+            f"Calcolare il piano di ammortamento indiretto via 3° pilastro ({sugg_3p} CHF/mese)",
+            f"Valutare la combinazione ottimale: {rec_mod} per la quota principale",
+            "Analizzare il piano LPP per eventuale prelievo anticipato (primo acquisto immobile)",
+            "Verificare la copertura vita/invalidità collegata all'ipoteca",
+        ]
         return html.Div([
-            _sec_pd("Models de finançament", [_mod_table([
-                ("Fisso 2 anni",   "Rata estable 2 anys. Renovació freqüent, bones condicions actuals.", "~1.8-2.2%/any", rischio=="Alta"),
-                ("Fisso 5 anni",   "Equilibri estabilitat / flexibilitat. El més triat a Suïssa.",       "~2.0-2.5%/any", rischio=="Media"),
-                ("Fisso 10 anys",  "Màxima estabilitat. Ideal si previsió de pujada de tipus.",          "~2.3-2.8%/any", rischio=="Bassa"),
-                ("SARON (variable)","Tipus variable lligat al mercat. Ara convenient, però risc.",       "~1.3-1.6%/any", False),
-                ("Mixt",           "50% fix + 50% SARON. Redueix volatilitat.",                         "tipus mitjà",   False),
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table([
+                ("Fisso 2 anni",    "Rata stabile 2 anni. Rinnovo frequente, buone condizioni attuali.",  "~1.8-2.2%/anno", rischio=="Alta"),
+                ("Fisso 5 anni",    "Equilibrio stabilità/flessibilità. Il più scelto in Svizzera.",      "~2.0-2.5%/anno", rischio=="Media"),
+                ("Fisso 10 anni",   "Massima stabilità. Ideale se previsione di aumento tassi.",          "~2.3-2.8%/anno", rischio=="Bassa"),
+                ("SARON (variabile)","Tasso variabile legato al mercato. Ora conveniente ma volatile.",   "~1.3-1.6%/anno", False),
+                ("Misto",           "50% fisso + 50% SARON. Riduce la volatilità mantenendo flessibilità.","tasso medio",   False),
             ])]),
-            _sec_pd(f"Recomanació per {nome} (tolerància {rischio})", [_rec_box([
-                f"📌 Model recomanat: {rec_mod}",
-                f"   → Amortament INDIRECTE via 3° Pilar:",
-                f"      En lloc d'amortitzar → versió capital al 3° Pilar",
-                f"      Doble avantatge fiscal: deducció hipoteca + deducció 3° Pilar",
-                f"      A 65 anys: capital disponible en comptes de deute cancel·lat",
-                f"   → Comparar mínim 3 bancs / asseguradores",
+            _sec_pd(lbl("prop") + (f" — {nome} (rischio {rischio})" if not no_client else f" (rischio {rischio})"), [_rec_box([
+                f"Modello raccomandato: {rec_mod}",
+                "  Strategia: ammortamento INDIRETTO via 3° pilastro",
+                f"  Invece di estinguere il debito → versare al 3° pilastro (CHF {sugg_3p}/mese)",
+                "  Doppio vantaggio fiscale: deducibilità interessi ipotecari + deducibilità 3° pilastro",
+                f"  Capitale 3° pilastro stimato a 65 anni: CHF {cap_3p_ind:,}",
+                "  Confrontare minimo 3 banche/assicuratori prima di firmare",
             ])]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Ottimizzazione LPP ───────────────────────────────────────────────────
@@ -1391,86 +1615,199 @@ def _prod_detail(prod_id, c, lc):
         aliq    = (0.35 if reddito > 8000 else 0.28 if reddito > 5000 else 0.22)
         ex_comp = min(20000, reddito * 24)
         risp    = int(ex_comp * aliq)
+        rend_cp = int(ex_comp * 0.025)
+
+        why_pts = [
+            f"Reddito mensile CHF {reddito:,} → aliquota fiscale stimata {int(aliq*100)}%",
+            f"Riscatto LPP di CHF {ex_comp:,} dedotto dal reddito imponibile = CHF {risp:,} di imposte risparmiate subito",
+            f"Il capitale versato nel CP cresce al ~2-3%/anno garantito (interessi + eventuale dividendo)",
+            f"Con ipoteca: il CP può essere prelevato anticipatamente per l'acquisto o il rinnovo della 1ª abitazione" if has_ipo else None,
+            f"A {eta} anni: ancora {max(65-eta,0)} anni di contributi — ottimizzare ora massimizza il capitale finale",
+            "Pianificare rendita vs capitale è una decisione strategica che va presa almeno 5 anni prima della pensione" if eta >= 55 else None,
+        ]
+        args_pts = [
+            f"CHF {ex_comp:,} investiti nel CP = CHF {risp:,} di imposte recuperate immediatamente — rendimento certo",
+            f"Il CP garantisce ~{int(rend_cp):,} CHF/anno di interessi sul versamento aggiuntivo",
+            "Doppio vantaggio rispetto al 3° pilastro: ammontare deducibile molto più elevato",
+            "Rendimento garantito: il CP è obbligato per legge a garantire un tasso minimo — zero rischio di perdita",
+            "Strategia: riscatto LPP + 3° pilastro = massimizzazione della deduzione fiscale totale",
+        ]
+        now_pts = [
+            f"Ogni anno senza riscatto = CHF {risp:,} di imposte pagate inutilmente",
+            "Il gap LPP cresce ogni anno — riscattarlo ora è più economico che aspettare",
+            "Riforma LPP in corso: le regole potrebbero cambiare — conveniente agire con le regole attuali",
+            "Tasso di conversione CP: più si accumula ora, maggiore sarà la rendita garantita a vita",
+        ]
+        next_steps = [
+            "Richiedere l'estratto aggiornato del 2° pilastro (cassa pensioni)",
+            "Identificare il gap LPP esatto (differenza tra avere attuale e avere massimo possibile)",
+            f"Pianificare il riscatto: CHF {min(ex_comp, 10000):,} subito + scalare negli anni successivi",
+            "Verificare le condizioni fiscali: i riscatti multipli devono rispettare intervalli minimi",
+            "Valutare: rendita mensile vs prelievo capitale a 65 anni (calcolo break-even)",
+        ]
         return html.Div([
-            _sec_pd("Modalitats LPP", [_mod_table([
-                ("Compres voluntàries (rescats)", "Versaments a la llacuna CP, deduïbles. Rendiment garantit CP.",
-                 f"CHF 5.000-{ex_comp:,}/any", True),
-                ("Retir anticipat per habitatge", "Retir parcial CP per a compra / renovació 1ª residència.",
-                 "màx. 10% cada 5 anys", has_ipo),
-                ("Planificació renda vs capital", "A jubilació: escollir entre renda mensual o capital únic.",
-                 "depèn del pla CP", False),
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table([
+                ("Riscatti volontari (rachats)", "Versamenti volontari nel gap CP. Deducibili dal reddito imponibile. Rendimento garantito.",
+                 f"CHF 5.000-{ex_comp:,}/anno", True),
+                ("Prelievo anticipato abitazione", "Prelievo parziale CP per acquisto/ristrutturazione 1ª residenza.",
+                 "max. 10% ogni 5 anni", has_ipo),
+                ("Pianificazione rendita vs capitale", "A pensionamento: scegliere tra rendita mensile garantita o capitale unico.",
+                 "decisione strategica", eta >= 50),
+                ("Cambio cassa pensioni (autonomi)", "Scelta della cassa pensioni ottimale (rendimento, condizioni, sostenibilità).",
+                 "analisi comparativa", situ == "Indipendente"),
             ])]),
-            _sec_pd(f"Recomanació per {nome}", [_rec_box([
-                f"📌 Compra voluntària exemple: CHF {ex_comp:,}/any",
-                f"   → Alíquota fiscal estimada: {int(aliq*100)}%",
-                f"   → Estalvi impostos immediat: CHF {risp:,}",
-                f"   → Rendiment CP: ~2-3%/any (garantit)",
-                f"   → Acció: sol·licitar extracte CP per calcular la llacuna exacta",
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Riscatto volontario esempio: CHF {ex_comp:,}/anno",
+                f"  Aliquota fiscale stimata: {int(aliq*100)}%",
+                f"  Risparmio imposte immediato: CHF {risp:,}",
+                f"  Rendimento CP: ~2-3%/anno (garantito per legge)",
+                f"  Interessi annui sul versamento: ~CHF {rend_cp:,}",
+                "  Azione: richiedere estratto CP per calcolare il gap esatto",
             ])]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Hausrat + RC ─────────────────────────────────────────────────────────
     elif prod_id == "hausrat":
-        val  = max(30000, reddito * 8)
-        prem = 180 + min(100, reddito // 80)
+        val     = max(30_000, reddito * 8)
+        prem    = 180 + min(100, reddito // 80)
         prem_pr = prem + 90
         rec_pr  = reddito >= 6000
+        rc_cop  = "CHF 5M" if rec_pr else "CHF 3M"
+
+        why_pts = [
+            f"Valore del contenuto domestico stimato: CHF {val:,} — totalmente scoperto senza assicurazione",
+            "RC privata: un incidente banale (es. danni a un'auto parcheggiata, infortunio a un ospite) può costare CHF 50.000+",
+            "In Svizzera la RC privata è de facto obbligatoria — richiesta da molti locatori e condomini",
+            f"Con {n_figli} figlio/i: la responsabilità civile si estende — i bambini causano danni frequentemente" if has_fil else None,
+            f"Reddito CHF {reddito:,}/mese: profilo {'Premium raccomandato — protezione estesa' if rec_pr else 'Standard adeguato al profilo attuale'}",
+        ]
+        args_pts = [
+            f"Per CHF {prem_pr if rec_pr else prem}/anno si protegge un patrimonio di CHF {val:,} + RC {rc_cop}",
+            f"Un sinistro RC medio in Svizzera costa CHF 15.000-80.000 — la polizza vale l'intera vita in un giorno",
+            "Copertura furto, incendio, danni d'acqua: rischi quotidiani che capitano più spesso del previsto",
+            "Spesso combinabile con assicurazione malattia → sconto bundle del 5-15%",
+            "Bici inclusa nella formula standard: protezione immediata senza polizza separata",
+        ]
+        now_pts = [
+            "Ogni giorno senza RC privata è un giorno di esposizione totale a richieste risarcitorie illimitate",
+            "In caso di sinistro senza polizza: costi legali + risarcimento interamente a carico del cliente",
+            "Cambiamento di abitazione o situazione familiare: momento ideale per rivedere/attivare la copertura",
+            "Tariffe stabili: nessun vantaggio ad aspettare — il rischio è immediato",
+        ]
+        next_steps = [
+            f"Fare un inventario del contenuto domestico per confermare il valore assicurato (stima: CHF {val:,})",
+            f"Scegliere la formula: {'Premium — RC CHF 5M, danni elettrici, assistenza 24h' if rec_pr else 'Standard — RC CHF 3M, furto, incendio, acqua'}",
+            "Verificare se esiste già una polizza RC/Hausrat attiva da rinnovare o confrontare",
+            "Richiedere offerta combinata Hausrat + malattia per eventuale sconto bundle",
+            f"Premio annuo stimato: CHF {prem_pr if rec_pr else prem} — attivazione immediata",
+        ]
         return html.Div([
-            _sec_pd("Modalitats", [_mod_table([
-                ("Standard", "Robatori, incendi, aigues. RC privada CHF 3M. Bici inclosa.",
-                 f"~CHF {prem}/any", not rec_pr),
-                ("Premium",  "Cobertura estesa: danys elèctrics, RC CHF 5M, assistència 24h.",
-                 f"~CHF {prem_pr}/any", rec_pr),
+            _why_box([p for p in why_pts if p]),
+            _sec_pd(lbl("mod"), [_mod_table([
+                ("Standard", "Furto, incendio, danni d'acqua. RC privata CHF 3M. Bici inclusa.",
+                 f"~CHF {prem}/anno", not rec_pr),
+                ("Premium",  "Copertura estesa: danni elettrici, RC CHF 5M, assistenza 24h, oggetti di valore.",
+                 f"~CHF {prem_pr}/anno", rec_pr),
+                ("Hausrat + RC separati", "Scelta per chi ha già una RC attiva — solo contenuto domestico.",
+                 f"~CHF {int(prem*0.6)}/anno", False),
             ])]),
-            _sec_pd(f"Recomanació per {nome}", [_rec_box([
-                f"📌 Valor contingut estimat: CHF {val:,}",
-                f"   → Model recomanat: {'Premium' if rec_pr else 'Standard'}",
-                f"   → Prima estimada: CHF {prem_pr if rec_pr else prem}/any",
-                f"   → RC privada: indispensable (cobreix danys a tercers involuntaris)",
-                f"   → Sovint inclòs en pack amb assegurança de malaltia → descomptes",
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Valore contenuto stimato: CHF {val:,}",
+                f"  Formula raccomandata: {'Premium' if rec_pr else 'Standard'}",
+                f"  RC privata inclusa: {rc_cop}",
+                f"  Premio annuo stimato: CHF {prem_pr if rec_pr else prem}",
+                "  RC privata: indispensabile — copre danni a terzi involontari illimitati",
+                "  Spesso incluso in pack con assicurazione malattia → sconto bundle",
             ])]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     # ── Cassa Malati ─────────────────────────────────────────────────────────
     elif prod_id == "malattia":
-        franc_rec = (2500 if reddito >= 7000 else 1500 if reddito >= 5000
-                     else 1000 if reddito >= 3000 else 500)
-        mod_rec = ("HMO" if reddito >= 5000 else "Telmed" if reddito >= 3000 else "Standard")
+        franc_rec  = (2500 if reddito >= 7000 else 1500 if reddito >= 5000
+                      else 1000 if reddito >= 3000 else 500)
+        mod_rec    = ("HMO" if reddito >= 5000 else "Telmed" if reddito >= 3000 else "Standard")
         risp_franc = max(0, (franc_rec - 300) // 300 * 60)
+        prima_est  = max(350, int(reddito * 0.06))
+        risp_mod   = int(prima_est * (0.175 if mod_rec == "HMO" else 0.125 if mod_rec == "Telmed" else 0))
+
+        why_pts = [
+            f"La LAMal è obbligatoria — ottimizzarla riduce il costo senza ridurre le prestazioni",
+            f"Reddito CHF {reddito:,}/mese → franchigia ottimale CHF {franc_rec} — risparmio vs CHF 300: CHF {risp_franc}/anno",
+            f"Modello {mod_rec}: risparmio stimato CHF {risp_mod}/anno rispetto al modello standard",
+            f"Con {n_figli} figlio/i: premi ridotti per bambini, franchigia separata per ognuno" if has_fil else None,
+            "Confronto annuale obbligatorio (cambio libero ogni ottobre): molti pagano il 20-30% in più per inerzia",
+        ]
+        args_pts = [
+            f"Passando da CHF 300 a CHF {franc_rec} di franchigia: risparmio CHF {risp_franc}/anno di premi",
+            f"Modello {mod_rec}: riduzione premi {('15-20%' if mod_rec=='HMO' else '10-15%' if mod_rec=='Telmed' else '0%')} — stesso livello di copertura LAMal",
+            f"Risparmio totale stimato (franchigia + modello): CHF {risp_franc + risp_mod}/anno",
+            "Le prestazioni LAMal sono identiche per legge — cambia solo chi gestisce il primo contatto",
+            "LCA supplementare (ambulatoriale, ospedaliero semi/privato): aggiunta strategica per chi può permetterselo",
+        ]
+        now_pts = [
+            "Cambiamento libero ogni anno al 31 ottobre — fuori da questa finestra si resta bloccati",
+            f"Ogni anno senza ottimizzazione = CHF {risp_franc + risp_mod} persi in premi inutilmente più alti",
+            "I premi LAMal aumentano mediamente del 5-10% ogni anno — confrontare ORA dà vantaggi composti",
+            "Aumento della franchigia: se sani nell'anno corrente, il break-even è quasi immediato",
+        ]
+        next_steps = [
+            "Verificare il costo attuale della LAMal (cassa, franchigia, modello)",
+            f"Richiedere offerta con franchigia CHF {franc_rec} + modello {mod_rec}",
+            f"Confrontare su comparatore ufficiale (comparis.ch) — scadenza entro 31 ottobre",
+            f"Valutare LCA supplementare: ambulatoriale, dental, ospedaliero semi/privato",
+            f"Con figli: verificare assicurazione bambini separata — premi spesso molto ridotti" if has_fil else
+            "Verificare se il datore di lavoro offre soluzioni collettive con sconto",
+        ]
         return html.Div([
-            _sec_pd("Models LAMal", [_mod_table([
-                ("HMO",      "Metge de referència HMO. Primes -15/20% vs estàndard. Limitació llibertat elecció.",
-                 "-15-20% prima", reddito >= 5000),
-                ("Telmed",   "Primera consulta per telèfon. Bon equilibri cost/flexibilitat.",
-                 "-10-15% prima", 3000 <= reddito < 5000),
-                ("Estàndard","Llibertat total d'elecció metge. Prima màxima.",
-                 "prima base 100%", reddito < 3000),
+            _why_box([p for p in why_pts if p]),
+            _sec_pd("Modelli LAMal", [_mod_table([
+                ("HMO",       "Medico di riferimento HMO. Premi -15/20% vs standard. Limitazione libertà scelta.",
+                 "-15-20% premi", reddito >= 5000),
+                ("Telmed",    "Prima consulenza telefonica. Buon equilibrio costo/flessibilità.",
+                 "-10-15% premi", 3000 <= reddito < 5000),
+                ("Standard",  "Libertà totale di scelta medico. Premio massimo.",
+                 "premio base 100%", reddito < 3000),
+                ("LCA Supplementare", "Prestazioni extra-LAMal: ambulatoriale esteso, semi/privato, dental, occhiali.",
+                 "da CHF 50/mese", reddito >= 6000),
             ])]),
-            _sec_pd("Franquícia recomanada", [
+            _sec_pd("Franchigia raccomandata", [
                 html.Table([
                     html.Thead(html.Tr([
-                        html.Th("Franquícia",        style=_thS()),
-                        html.Th("Estalvi primes/any", style=_thS()),
-                        html.Th("Recomanat si…",      style=_thS()),
+                        html.Th("Franchigia", style=_thS()),
+                        html.Th("Risparmio premi/anno", style=_thS()),
+                        html.Th("Raccomandato se…", style=_thS()),
                     ])),
                     html.Tbody([html.Tr([
                         html.Td(f"CHF {f}",
                                 style={"fontWeight":"700","color":"#c0392b","padding":"8px 10px",
-                                       "background":"#fde8e8"} if f==franc_rec
+                                       "background":"#fde8e8"} if f == franc_rec
                                        else {"padding":"8px 10px","fontSize":"0.87rem"}),
-                        html.Td(f"CHF {max(0,(f-300)//300*60)}/any",
+                        html.Td(f"CHF {max(0,(f-300)//300*60)}/anno",
                                 style={"padding":"8px 10px","fontSize":"0.87rem"}),
-                        html.Td("Pocs visites/any" if f >= 1500 else "Ús mèdic habitual",
+                        html.Td("Poche visite/anno" if f >= 1500 else "Uso medico abituale",
                                 style={"padding":"8px 10px","fontSize":"0.82rem","color":"#888"}),
-                    ]) for f in [300,500,1000,1500,2000,2500]]),
-                ],style={"width":"100%","borderCollapse":"collapse","border":"1px solid #eaecf2","borderRadius":"8px","overflow":"hidden","marginBottom":"8px"}),
-                _rec_box([
-                    f"📌 Franquícia recomanada: CHF {franc_rec}",
-                    f"   → Model: {mod_rec}",
-                    f"   → Estalvi estimat vs CHF 300: CHF {risp_franc}/any",
-                    f"   → Comparar anualment (canvi lliure a l'octubre)",
-                ]),
+                    ]) for f in [300, 500, 1000, 1500, 2000, 2500]]),
+                ], style={"width":"100%","borderCollapse":"collapse","border":"1px solid #eaecf2",
+                          "borderRadius":"8px","overflow":"hidden","marginBottom":"8px"}),
             ]),
+            _sec_pd(lbl("prop") + (f" — {nome}" if not no_client else ""), [_rec_box([
+                f"Franchigia raccomandata: CHF {franc_rec}",
+                f"  Modello: {mod_rec}",
+                f"  Risparmio franchigia vs CHF 300: CHF {risp_franc}/anno",
+                f"  Risparmio modello vs standard: ~CHF {risp_mod}/anno",
+                f"  Risparmio totale stimato: CHF {risp_franc + risp_mod}/anno",
+                "  Confrontare ogni anno (cambio libero entro 31 ottobre)",
+            ])]),
+            _args_box(args_pts),
+            _now_box(now_pts),
+            _next_box(next_steps),
         ])
 
     return html.Div("—")
