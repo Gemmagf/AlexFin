@@ -718,23 +718,14 @@ def render_list(cs,lc):
             dbc.Col(dbc.Button("＋",id="list-new-btn",className="btn-crm-primary w-100",
                                style={"fontSize":"1.2rem","lineHeight":"1.2"}),width=1),
         ],className="g-2 mb-4"),
-        html.Div(id="client-table-body"),
+        # Pre-populate amb tots els clients — els filtres ho actualitzaran
+        html.Div(_build_table(cs, lc), id="client-table-body"),
     ])
 
-@callback(Output("client-table-body","children"),
-          Input("filter-search","value"), Input("filter-stage","value"),
-          Input("filter-canton","value"), Input("crm-reload","data"), Input("crm-lang","data"),
-          prevent_initial_call=False)
-def update_table(search,stage,canton,_r,lc):
-    lc=lc or "it"; cs=load_clients()
-    q=(search or "").lower()
-    if q: cs=[c for c in cs if q in c.get("nome","").lower() or q in c.get("email","").lower()
-              or any(q in p["name"].get("it","").lower() for p in PRODUCTS if p["id"] in _get_prodotti_sel(c))
-              or q in (c.get("prodotto_contrattato","") or "").lower()]
-    if stage:  cs=[c for c in cs if c.get("pipeline_stage")==stage]
-    if canton: cs=[c for c in cs if c.get("canton")==canton]
-    if not cs: return html.Div(ct("no_clients",lc),style={"color":"#aaa","padding":"32px","textAlign":"center"})
-
+def _build_table(cs, lc):
+    """Construeix el contingut de la taula de clients (sense filtres aplicats)."""
+    if not cs:
+        return html.Div(ct("no_clients",lc),style={"color":"#aaa","padding":"32px","textAlign":"center"})
     rows=[]
     for c in sorted(cs,key=lambda x:x.get("data_salvataggio",""),reverse=True):
         nome=c.get("nome","—"); fd=_fu(c)
@@ -763,7 +754,6 @@ def update_table(search,stage,canton,_r,lc):
                      dbc.Button("🗑️",id={"type":"btn-delete","index":nome},size="sm",color="light",className="p-1")],
                     style={"whiteSpace":"nowrap"}),
         ]))
-
     return html.Div([
         html.Table([
             html.Thead(html.Tr([html.Th(ct("th_name",lc)),html.Th(ct("th_stage",lc)),html.Th(ct("th_canton",lc)),
@@ -773,6 +763,20 @@ def update_table(search,stage,canton,_r,lc):
         ],className="crm-table w-100"),
         html.Div(f"{len(cs)} {ct('list_shown',lc)}",style={"color":"#aaa","fontSize":"0.75rem","marginTop":"10px","textAlign":"right","padding":"8px"}),
     ],className="c-card",style={"padding":"0","overflow":"hidden"})
+
+@callback(Output("client-table-body","children"),
+          Input("filter-search","value"), Input("filter-stage","value"),
+          Input("filter-canton","value"), Input("crm-reload","data"), Input("crm-lang","data"),
+          prevent_initial_call=True)
+def update_table(search,stage,canton,_r,lc):
+    lc=lc or "it"; cs=load_clients()
+    q=(search or "").strip().lower()
+    if q: cs=[c for c in cs if q in c.get("nome","").lower() or q in c.get("email","").lower()
+              or any(q in p["name"].get("it","").lower() for p in PRODUCTS if p["id"] in _get_prodotti_sel(c))
+              or q in (c.get("prodotto_contrattato","") or "").lower()]
+    if stage:  cs=[c for c in cs if c.get("pipeline_stage")==stage]
+    if canton: cs=[c for c in cs if c.get("canton")==canton]
+    return _build_table(cs, lc)
 
 # ── TAB 3: KANBAN (amb drag & drop) ──────────────────────────────────────────
 def render_kanban(cs,lc):
