@@ -36,12 +36,73 @@ CANTONS = ["Zürich","Bern","Luzern","Uri","Schwyz","Obwalden","Nidwalden","Glar
            "Appenzell AR","Appenzell AI","St. Gallen","Graubünden","Aargau","Thurgau",
            "Ticino","Vaud","Valais","Neuchâtel","Genève","Jura"]
 
+# ── CATALOGO PRODOTTI ─────────────────────────────────────────────────────────
+PRODUCTS = [
+  {"id":"3p","icon":"🏦",
+   "name":{"it":"3° Pilastro","de":"Säule 3a","fr":"3e Pilier","en":"3rd Pillar","ca":"3r Pilar"},
+   "desc":{"it":"Risparmio previdenziale privato con deducibilità fiscale: CHF 7'056/anno (dipendenti) · CHF 35'280 (indipendenti). L'effetto composto premia chi inizia presto — 30 anni vs 35 anni = capitale 50% maggiore a 65.",
+           "de":"Private Altersvorsorge mit Steuerabzug: CHF 7'056/Jahr (Angest.) · CHF 35'280 (Selbst.). Frühzeitig anfangen = 50% mehr Kapital dank Zinseszins.",
+           "fr":"Épargne-retraite privée déductible: CHF 7'056/an (salariés) · CHF 35'280 (ind.). Commencer à 30 vs 35 ans = 50% de capital en plus à 65.",
+           "en":"Private pension savings, tax-deductible: CHF 7,056/year (employees) · CHF 35,280 (self-employed). Starting at 30 vs 35 = 50% more capital at 65.",
+           "ca":"Estalvi de previsió deduïble: CHF 7.056/any (assalariats) · CHF 35.280 (autònoms). Iniciar aviat = 50% més capital a 65 anys."},
+   "fit": lambda c: c.get("eta",99)<65},
+  {"id":"vita","icon":"💚",
+   "name":{"it":"Assicurazione Vita","de":"Lebensversicherung","fr":"Assurance Vie","en":"Life Insurance","ca":"Assegurança de Vida"},
+   "desc":{"it":"Protezione del reddito familiare in caso di decesso: rischio puro (term life) o risparmio misto. Indispensabile con figli o ipoteca in corso.",
+           "de":"Absicherung des Familieneinkommens im Todesfall: Risikovs. oder gemischte Vers. Unerlässlich mit Kindern oder Hypothek.",
+           "fr":"Protection du revenu familial au décès: risque pur ou épargne mixte. Indispensable avec enfants ou hypothèque.",
+           "en":"Family income protection on death: pure risk (term) or savings component (mixed). Essential with children or mortgage.",
+           "ca":"Protecció dels ingressos familiars en defunció: risc pur o mixta. Essencial amb fills o hipoteca."},
+   "fit": lambda c: bool(c.get("figli")) or bool(c.get("ipoteca"))},
+  {"id":"ai","icon":"🛡️",
+   "name":{"it":"Assicurazione Invalidità","de":"Erwerbsunfähigkeitsvers.","fr":"Assurance Invalidité","en":"Disability Insurance","ca":"Assegurança Invalidesa"},
+   "desc":{"it":"Integra l'AI statale per mantenere il tenore di vita in caso di incapacità parziale o totale. Critica per indipendenti: nessuna copertura automatica.",
+           "de":"Ergänzt staatliche IV bei Erwerbsunfähigkeit. Für Selbstständige kritisch — keine automatische Absicherung.",
+           "fr":"Complète l'AI étatique en cas d'incapacité. Critique pour les indépendants (pas de couverture automatique).",
+           "en":"Supplements state disability insurance. Critical for self-employed — no automatic coverage.",
+           "ca":"Complementa l'AI estatal en cas d'incapacitat. Crític per a autònoms (cap cobertura automàtica)."},
+   "fit": lambda c: c.get("situazione") in ["Dipendente","Indipendente"]},
+  {"id":"ipoteca","icon":"🏠",
+   "name":{"it":"Pianificazione Ipotecaria","de":"Hypothekenplanung","fr":"Planification Hypothécaire","en":"Mortgage Planning","ca":"Planificació Hipotecària"},
+   "desc":{"it":"Strutturazione del finanziamento: fisso vs SARON, amortamento indiretto via 3° pilastro (doppio vantaggio fiscale), negoziazione con più banche.",
+           "de":"Finanzierungsstruktur: fest vs. SARON, indirekte Amortisation über Säule 3a (doppelter Steuerbonus), Vergleich mehrerer Banken.",
+           "fr":"Structure de financement: fixe vs SARON, amortissement indirect via 3e pilier (double avantage fiscal), comparaison de banques.",
+           "en":"Financing structure: fixed vs SARON, indirect amortization via pillar 3a (double tax benefit), comparing banks.",
+           "ca":"Estructura de finançament: fix vs SARON, amortització indirecta via 3r pilar (doble avantatge fiscal)."},
+   "fit": lambda c: bool(c.get("ipoteca")) or c.get("eta",99)<55},
+  {"id":"lpp","icon":"🏢",
+   "name":{"it":"Ottimizzazione LPP","de":"BVG-Optimierung","fr":"Optimisation LPP","en":"Pension Fund Optim.","ca":"Optimització LPP"},
+   "desc":{"it":"Acquisti volontari nella cassa pensione (deducibili): massimizza il capitale e riduce le tasse oggi. Riscatto anticipato per immobile. Rendita vs. capitale.",
+           "de":"Freiwillige PK-Einkäufe (steuerabzugsfähig): Kapital maximieren, Steuern senken. Vorbezug für Wohneigentum. Renten- vs. Kapitalplanung.",
+           "fr":"Rachats volontaires dans la CP (déductibles): maximiser le capital, réduire les impôts. Retrait anticipé pour logement.",
+           "en":"Voluntary pension fund purchases (tax-deductible): maximize capital, reduce taxes. Early withdrawal for property.",
+           "ca":"Compres voluntàries a la CP (deduïbles): maximitzar capital i reduir impostos. Retir anticipat per immoble."},
+   "fit": lambda c: c.get("situazione")=="Dipendente" and c.get("eta",0)>25},
+  {"id":"hausrat","icon":"🏡",
+   "name":{"it":"Hausrat + RC Privata","de":"Hausrat + Privathaftpflicht","fr":"Ménage + RC Privée","en":"Household + Liability","ca":"Llar + RC Privada"},
+   "desc":{"it":"Assicurazione economica domestica (furto, incendio, danni acqua) + responsabilità civile privata. Pacchetto base essenziale per tutti. Premi CHF 150-350/anno.",
+           "de":"Hausrat (Diebstahl, Brand, Wasser) + Privathaftpflicht. Basispaket für alle. Prämien CHF 150-350/Jahr.",
+           "fr":"Ménage (vol, incendie, eau) + RC privée. Paquet de base pour tous. Primes CHF 150-350/an.",
+           "en":"Household (theft, fire, water) + private liability. Essential for all. Premiums CHF 150-350/year.",
+           "ca":"Llar (robatori, incendi, aigua) + RC privada. Bàsic per a tothom. Primes CHF 150-350/any."},
+   "fit": lambda c: True},
+  {"id":"malattia","icon":"🏥",
+   "name":{"it":"Ottimizzazione Cassa Malati","de":"Krankenkassen-Optim.","fr":"Optim. Assur. Maladie","en":"Health Insurance Optim.","ca":"Optim. Assegurança Mèdica"},
+   "desc":{"it":"Revisione modello LAMal (HMO/Telmed/standard) + franchigia ottimale. Risparmio medio CHF 300-800/anno mantenendo la copertura adeguata.",
+           "de":"KVG-Modell (HMO/Telmed/standard) + optimale Franchise. Durchschnittliche Ersparnis CHF 300-800/Jahr.",
+           "fr":"Modèle LAMal (HMO/Telmed/standard) + franchise optimale. Économie moyenne CHF 300-800/an.",
+           "en":"LAMal model (HMO/Telmed/standard) + optimal deductible. Average savings CHF 300-800/year.",
+           "ca":"Model LAMal (HMO/Telmed/standard) + franquícia òptima. Estalvi mitjà CHF 300-800/any."},
+   "fit": lambda c: True},
+]
+
 # ── I18N ────────────────────────────────────────────────────────────────────
 _T = {
     "nav_dash":       {"it":"📊 Dashboard","de":"📊 Übersicht","fr":"📊 Tableau","en":"📊 Dashboard","ca":"📊 Tauler"},
     "nav_clients":    {"it":"👥 Clienti","de":"👥 Kunden","fr":"👥 Clients","en":"👥 Clients","ca":"👥 Clients"},
     "nav_pipeline":   {"it":"📋 Pipeline","de":"📋 Pipeline","fr":"📋 Pipeline","en":"📋 Pipeline","ca":"📋 Pipeline"},
     "nav_agenda":     {"it":"📅 Agenda","de":"📅 Agenda","fr":"📅 Agenda","en":"📅 Agenda","ca":"📅 Agenda"},
+    "nav_products":   {"it":"📦 Prodotti","de":"📦 Produkte","fr":"📦 Produits","en":"📦 Products","ca":"📦 Productes"},
     "nav_new":        {"it":"＋ Nuovo","de":"＋ Neu","fr":"＋ Nouveau","en":"＋ New","ca":"＋ Nou"},
     "nav_logout":     {"it":"⎋ Esci","de":"⎋ Abmelden","fr":"⎋ Déconn.","en":"⎋ Logout","ca":"⎋ Surt"},
     "dash_title":     {"it":"Panoramica CRM","de":"CRM Übersicht","fr":"Aperçu CRM","en":"CRM Overview","ca":"Resum CRM"},
@@ -154,6 +215,19 @@ _T = {
     "alert_saved":    {"it":"🔔 Alerta impostata","de":"🔔 Erinnerung gesetzt","fr":"🔔 Alerte définie","en":"🔔 Alert set","ca":"🔔 Alerta configurada"},
     "no_notes":       {"it":"Nessuna interazione registrata.","de":"Keine Interaktionen.","fr":"Aucune interaction.","en":"No interactions recorded.","ca":"Cap interacció registrada."},
     "no_change":      {"it":"⚠️ Niente da salvare.","de":"⚠️ Nichts zu speichern.","fr":"⚠️ Rien à enregistrer.","en":"⚠️ Nothing to save.","ca":"⚠️ Res a desar."},
+    # Productes
+    "prod_title":     {"it":"📦 Catalogo Prodotti","de":"📦 Produktkatalog","fr":"📦 Catalogue Produits","en":"📦 Product Catalogue","ca":"📦 Catàleg de Productes"},
+    "prod_sub":       {"it":"Soluzioni finanziarie proposte da SVAG","de":"Finanzlösungen von SVAG","fr":"Solutions financières SVAG","en":"Financial solutions by SVAG","ca":"Solucions financeres de SVAG"},
+    "prod_clients":   {"it":"clienti","de":"Kunden","fr":"clients","en":"clients","ca":"clients"},
+    # Suggeriments
+    "sugg_title":     {"it":"💡 Prodotti consigliati","de":"💡 Empfohlene Produkte","fr":"💡 Produits conseillés","en":"💡 Recommended products","ca":"💡 Productes recomanats"},
+    "sugg_already":   {"it":"✅ Già contrattato","de":"✅ Bereits abgeschlossen","fr":"✅ Déjà contracté","en":"✅ Already contracted","ca":"✅ Ja contractat"},
+    # Download
+    "btn_download":   {"it":"📄 Scarica report","de":"📄 Bericht laden","fr":"📄 Télécharger","en":"📄 Download report","ca":"📄 Descarrega informe"},
+    "dl_profile":     {"it":"PROFILO CLIENTE","de":"KUNDENPROFIL","fr":"PROFIL CLIENT","en":"CLIENT PROFILE","ca":"PERFIL CLIENT"},
+    "dl_products":    {"it":"PRODOTTI RACCOMANDATI","de":"EMPFOHLENE PRODUKTE","fr":"PRODUITS RECOMMANDÉS","en":"RECOMMENDED PRODUCTS","ca":"PRODUCTES RECOMANATS"},
+    "dl_notes":       {"it":"NOTE RIUNIONE","de":"BESPRECHUNGSNOTIZEN","fr":"NOTES DE RÉUNION","en":"MEETING NOTES","ca":"NOTES REUNIÓ"},
+    "dl_next":        {"it":"PROSSIMO CONTATTO","de":"NÄCHSTER KONTAKT","fr":"PROCHAIN CONTACT","en":"NEXT CONTACT","ca":"PROPER CONTACTE"},
 }
 
 LANG_OPTS = [{"label":"🇮🇹 IT","value":"it"},{"label":"🇩🇪 DE","value":"de"},
@@ -355,6 +429,10 @@ app.layout = html.Div([
     dcc.Store(id="edit-nome",   data=None),
     dcc.Store(id="del-nome",    data=None),
     dcc.Store(id="info-nome",   data=None),
+    dcc.Store(id="kanban-drop", data=None),
+    dcc.Store(id="new-relay",   data=0),
+    dcc.Store(id="dnd-setup",   data=0),
+    dcc.Download(id="meet-dl"),
     dcc.Interval(id="crm-tick", interval=30_000, n_intervals=0),
     # Navbar
     html.Nav(id="crm-navbar", className="crm-navbar"),
@@ -386,8 +464,9 @@ app.layout = html.Div([
         dbc.ModalBody(html.Div(id="info-body")),
         dbc.ModalFooter([
             html.Div(id="info-note-msg",style={"fontSize":"0.85rem","color":"#27ae60","flex":"1","minHeight":"20px"}),
+            dbc.Button(id="btn-download",color="secondary",outline=True,className="me-2"),
             dbc.Button(id="btn-save-note",className="btn-crm-primary"),
-        ],style={"display":"flex","alignItems":"center","gap":"12px","background":"#f8f9fb",
+        ],style={"display":"flex","alignItems":"center","gap":"8px","background":"#f8f9fb",
                  "borderTop":"1px solid #eaecf2","borderRadius":"0 0 12px 12px"}),
     ], id="info-modal", size="xl", scrollable=True, is_open=False),
 ])
@@ -403,8 +482,9 @@ def render_navbar(lc):
         html.A(ct("nav_dash",lc),    id="nav-dashboard",className="crm-nav-link",href="#"),
         html.A(ct("nav_clients",lc), id="nav-clienti",  className="crm-nav-link",href="#"),
         html.A(ct("nav_pipeline",lc),id="nav-pipeline", className="crm-nav-link",href="#"),
-        html.A(ct("nav_agenda",lc),  id="nav-agenda",   className="crm-nav-link",href="#"),
-        html.A(ct("nav_new",lc),     id="btn-new",      className="crm-nav-link",href="#",
+        html.A(ct("nav_agenda",lc),    id="nav-agenda",    className="crm-nav-link",href="#"),
+        html.A(ct("nav_products",lc),id="nav-products",  className="crm-nav-link",href="#"),
+        html.A(ct("nav_new",lc),     id="btn-new",       className="crm-nav-link",href="#",
                style={"background":"rgba(192,57,43,0.22)"}),
         dcc.Dropdown(id="lang-sel",options=LANG_OPTS,value=lc,clearable=False,
                      style={"width":"80px","fontSize":"0.8rem","marginLeft":"auto","minWidth":"78px"}),
@@ -418,9 +498,11 @@ def change_lang(v): return v or "it"
 @callback(Output("active-tab","data"),
           Input("nav-dashboard","n_clicks"), Input("nav-clienti","n_clicks"),
           Input("nav-pipeline","n_clicks"),  Input("nav-agenda","n_clicks"),
+          Input("nav-products","n_clicks"),
           State("active-tab","data"), prevent_initial_call=True)
-def switch_tab(a,b,c,d,cur):
-    m={"nav-dashboard":"tab-dash","nav-clienti":"tab-list","nav-pipeline":"tab-kanban","nav-agenda":"tab-agenda"}
+def switch_tab(a,b,c,d,e,cur):
+    m={"nav-dashboard":"tab-dash","nav-clienti":"tab-list","nav-pipeline":"tab-kanban",
+       "nav-agenda":"tab-agenda","nav-products":"tab-products"}
     return m.get(ctx.triggered_id, cur or "tab-dash")
 
 # ── MAIN CONTENT ─────────────────────────────────────────────────────────────
@@ -429,9 +511,10 @@ def switch_tab(a,b,c,d,cur):
           Input("crm-lang","data"),   Input("crm-tick","n_intervals"))
 def render_content(tab, _r, lc, _t):
     lc=lc or "it"; cs=load_clients()
-    if tab=="tab-list":   return render_list(cs,lc)
-    if tab=="tab-kanban": return render_kanban(cs,lc)
-    if tab=="tab-agenda": return render_agenda(cs,lc)
+    if tab=="tab-list":     return render_list(cs,lc)
+    if tab=="tab-kanban":   return render_kanban(cs,lc)
+    if tab=="tab-agenda":   return render_agenda(cs,lc)
+    if tab=="tab-products": return render_products(lc)
     return render_dash(cs,lc)
 
 # ── TAB 1: DASHBOARD ─────────────────────────────────────────────────────────
@@ -559,7 +642,7 @@ def update_table(search,stage,canton,_r,lc):
         html.Div(f"{len(cs)} {ct('list_shown',lc)}",style={"color":"#aaa","fontSize":"0.75rem","marginTop":"10px","textAlign":"right","padding":"8px"}),
     ],className="c-card",style={"padding":"0","overflow":"hidden"})
 
-# ── TAB 3: KANBAN ────────────────────────────────────────────────────────────
+# ── TAB 3: KANBAN (amb drag & drop) ──────────────────────────────────────────
 def render_kanban(cs,lc):
     by={k:[] for k in STAGE_KEYS}
     for c in cs: by[c.get("pipeline_stage","lead")].append(c)
@@ -574,7 +657,10 @@ def render_kanban(cs,lc):
                       dbc.Button("✏️",id={"type":"btn-edit","index":c.get("nome","")},size="sm",color="light",
                                  className="p-0 ms-1",style={"fontSize":"0.75rem"})],
                      style={"display":"flex","alignItems":"center","marginTop":"6px"}),
-        ],className="kanban-card") for c in by[key]]
+        ],className="kanban-card",
+          # Atributs HTML5 drag & drop
+          **{"data-drag": c.get("nome",""), "draggable":"true",
+             "style":{"cursor":"grab"}}) for c in by[key]]
         tv=sum(c.get("valore_stimato",0) for c in by[key])
         cols.append(dbc.Col(html.Div([
             html.Div([html.Span(slabel(key,lc),className="kanban-col-title",
@@ -582,12 +668,15 @@ def render_kanban(cs,lc):
                       html.Span(f" {len(by[key])}",style={"color":color,"fontWeight":"800","fontSize":"0.9rem"}),
                       html.Span(f"  CHF {tv:,}" if tv else "",style={"fontSize":"0.72rem","color":"#aaa","marginLeft":"8px"})]),
             *cards,
-            html.Div("—",style={"color":"#ddd","textAlign":"center","marginTop":"20px","fontSize":"0.8rem"}) if not cards else html.Div(),
-        ],className="kanban-col"),width=2))
+            html.Div("— buit —",style={"color":"#ddd","textAlign":"center","marginTop":"20px","fontSize":"0.8rem"}) if not cards else html.Div(),
+        ],className="kanban-col",
+          # Columna accepta drops
+          **{"data-drop": key}),width=2))
 
     return html.Div([
         html.Div([html.Div(ct("pipeline_title",lc),style={"fontSize":"1.4rem","fontWeight":"800","color":"#1e2235"}),
-                  html.Div(f"{len(cs)} {ct('list_in_crm',lc)}",style={"color":"#aaa","fontSize":"0.8rem"})],
+                  html.Div(f"{len(cs)} {ct('list_in_crm',lc)} · arrossega per canviar fase",
+                           style={"color":"#aaa","fontSize":"0.8rem"})],
                  style={"marginBottom":"20px"}),
         dbc.Row(cols,className="g-2"),
     ])
@@ -642,10 +731,12 @@ def render_agenda(cs,lc):
 @callback(Output("btn-cancel","children"), Output("btn-save","children"),
           Output("btn-del-cancel","children"), Output("btn-del-ok","children"),
           Output("del-modal-hdr","children"), Output("btn-save-note","children"),
+          Output("btn-download","children"),
           Input("crm-lang","data"))
 def modal_labels(lc):
     lc=lc or "it"
-    return ct("btn_cancel",lc),ct("btn_save",lc),ct("btn_cancel",lc),ct("btn_delete",lc),ct("del_title",lc),ct("btn_save_note",lc)
+    return (ct("btn_cancel",lc),ct("btn_save",lc),ct("btn_cancel",lc),
+            ct("btn_delete",lc),ct("del_title",lc),ct("btn_save_note",lc),ct("btn_download",lc))
 
 # ── OPEN EDIT MODAL — btn-new sempre al DOM (navbar) ─────────────────────────
 @callback(
@@ -654,19 +745,19 @@ def modal_labels(lc):
     Output("modal-title","children"),
     Output("edit-nome","data"),
     Input("btn-new",                       "n_clicks"),   # navbar — sempre DOM ✅
+    Input("new-relay",                     "data"),       # relay de list-new-btn ✅
     Input({"type":"btn-edit","index":ALL}, "n_clicks"),   # pattern-matching ✅
     Input("btn-cancel",                    "n_clicks"),
     Input("btn-save",                      "n_clicks"),
     State("crm-lang","data"),
     prevent_initial_call=True,
 )
-def open_modal(n_new, n_edit, n_cancel, n_save, lc):
+def open_modal(n_new, n_relay, n_edit, n_cancel, n_save, lc):
     lc=lc or "it"; tid=ctx.triggered_id
     if tid in ("btn-cancel","btn-save") or tid is None:
         return False, dash.no_update, dash.no_update, None
-    if tid == "btn-new":
-        # FIX: ignora render inicial del navbar (n_clicks=None)
-        if not (ctx.triggered or [{}])[0].get("value"):
+    if tid in ("btn-new","new-relay"):
+        if tid == "btn-new" and not (ctx.triggered or [{}])[0].get("value"):
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update
         return True, _form(None,lc), ct("modal_new",lc), None
     if isinstance(tid,dict) and tid.get("type")=="btn-edit":
@@ -789,6 +880,24 @@ def _render_info_body(c, lc):
                                {"color":"#aaa","fontSize":"0.88rem"}),
             ],width=7),
         ]),
+
+        html.Hr(style={"margin":"20px 0"}),
+
+        # ── Suggeriments de productes
+        html.H6(ct("sugg_title",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
+        html.Div([html.Div([
+            html.Span(s["p"]["icon"]+" ",style={"fontSize":"1.1rem"}),
+            html.Span(s["p"]["name"].get(lc,s["p"]["name"]["it"]),
+                      style={"fontWeight":"700","color":"#27ae60" if s["already"] else "#1e2235","fontSize":"0.88rem"}),
+            html.Span(f"  {ct('sugg_already',lc)}" if s["already"] else "",
+                      style={"fontSize":"0.72rem","color":"#27ae60","marginLeft":"6px","fontStyle":"italic"}),
+            html.Div(s["p"]["desc"].get(lc,s["p"]["desc"]["it"]),
+                     style={"fontSize":"0.78rem","color":"#888","marginTop":"2px","lineHeight":"1.45"}),
+        ],style={"padding":"8px 12px","borderRadius":"8px","marginBottom":"6px",
+                 "background":"#f0fdf4" if s["already"] else "#f8f9fb",
+                 "border":f"1px solid {'#bbf7d0' if s['already'] else '#eaecf2'}",
+                 "opacity":"1" if s["fits"] else "0.45"})
+        for s in _get_suggestions(c,lc)[:5]],style={"marginBottom":"4px"}),
 
         html.Hr(style={"margin":"20px 0"}),
 
@@ -953,6 +1062,183 @@ def delete_flow(nd,nc,nok,nome_s,rn,lc):
         nome=tid["index"]
         return True, ct("del_text",lc).format(n=nome), nome, dash.no_update
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+# ── RELAY list-new-btn → open_modal ──────────────────────────────────────────
+@callback(Output("new-relay","data"),
+          Input("list-new-btn","n_clicks"),
+          State("new-relay","data"), prevent_initial_call=True)
+def relay_new(n, cur):
+    return (cur or 0)+1 if n else dash.no_update
+
+# ── KANBAN DRAG & DROP — setup event listeners ────────────────────────────────
+app.clientside_callback(
+    """
+    function(children) {
+        document.removeEventListener('dragstart', window._crmDs);
+        document.removeEventListener('dragend',   window._crmDe);
+        document.removeEventListener('dragover',  window._crmDo);
+        document.removeEventListener('dragleave', window._crmDl);
+        document.removeEventListener('drop',      window._crmDr);
+
+        window._crmDs = function(e) {
+            var card = e.target.closest('[data-drag]');
+            if (!card) return;
+            e.dataTransfer.setData('text/plain', card.getAttribute('data-drag'));
+            card.style.opacity = '0.45';
+        };
+        window._crmDe = function(e) {
+            var card = e.target.closest('[data-drag]');
+            if (card) card.style.opacity = '1';
+        };
+        window._crmDo = function(e) {
+            var col = e.target.closest('[data-drop]');
+            if (!col) return;
+            e.preventDefault();
+            col.style.outline = '2px dashed #c0392b';
+            col.style.background = '#fff5f5';
+        };
+        window._crmDl = function(e) {
+            var col = e.target.closest('[data-drop]');
+            if (col && !col.contains(e.relatedTarget)) {
+                col.style.outline = ''; col.style.background = '';
+            }
+        };
+        window._crmDr = function(e) {
+            var col = e.target.closest('[data-drop]');
+            if (!col) return;
+            e.preventDefault();
+            col.style.outline = ''; col.style.background = '';
+            var nome  = e.dataTransfer.getData('text/plain');
+            var stage = col.getAttribute('data-drop');
+            if (nome && stage) {
+                window.dash_clientside.set_props('kanban-drop',
+                    {data: {nome: nome, stage: stage, ts: Date.now()}});
+            }
+        };
+        document.addEventListener('dragstart', window._crmDs);
+        document.addEventListener('dragend',   window._crmDe);
+        document.addEventListener('dragover',  window._crmDo);
+        document.addEventListener('dragleave', window._crmDl);
+        document.addEventListener('drop',      window._crmDr);
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("dnd-setup","data"),
+    Input("crm-content","children"),
+    prevent_initial_call=True,
+)
+
+# ── KANBAN DROP — actualitza pipeline stage ───────────────────────────────────
+@callback(Output("crm-reload","data",allow_duplicate=True),
+          Input("kanban-drop","data"),
+          State("crm-reload","data"), prevent_initial_call=True)
+def kanban_drop(drop, rn):
+    if not drop or not drop.get("nome") or not drop.get("stage"): return dash.no_update
+    nome=drop["nome"]; stage=drop["stage"]
+    if stage not in STAGE_KEYS: return dash.no_update
+    c=get_client(nome)
+    if not c: return dash.no_update
+    c["pipeline_stage"]=stage
+    c=_default(c); upsert_client(c)
+    return (rn or 0)+1
+
+# ── TAB 5: PRODUCTES ─────────────────────────────────────────────────────────
+def render_products(lc):
+    lc=lc or "it"; cs=load_clients()
+    cards=[]
+    for p in PRODUCTS:
+        # Quants clients encaixen + quants ja el tenen
+        n_fit=sum(1 for c in cs if _safe_fit(p,c))
+        prodotto_set={(c.get("prodotto_contrattato","") or "").lower() for c in cs}
+        n_has=sum(1 for c in cs if p["id"] in (c.get("prodotto_contrattato","") or "").lower())
+        name=p["name"].get(lc,p["name"]["it"])
+        desc=p["desc"].get(lc,p["desc"]["it"])
+        cards.append(dbc.Col(html.Div([
+            html.Div([html.Span(p["icon"],style={"fontSize":"2rem","marginRight":"12px"}),
+                      html.Div([html.Div(name,style={"fontWeight":"800","fontSize":"1.05rem","color":"#1e2235"}),
+                                html.Div(f"{n_fit} {ct('prod_clients',lc)} encaixen · {n_has} actuals",
+                                         style={"fontSize":"0.75rem","color":"#888","marginTop":"2px"})]),
+                     ],style={"display":"flex","alignItems":"center","marginBottom":"14px"}),
+            html.Div(desc,style={"fontSize":"0.87rem","color":"#444","lineHeight":"1.65"}),
+        ],className="c-card",style={"height":"100%"}),width=6,className="mb-3"))
+
+    return html.Div([
+        html.Div([html.Div(ct("prod_title",lc),style={"fontSize":"1.4rem","fontWeight":"800","color":"#1e2235"}),
+                  html.Div(ct("prod_sub",lc),  style={"color":"#aaa","fontSize":"0.8rem"})],
+                 style={"marginBottom":"24px"}),
+        dbc.Row(cards),
+    ])
+
+def _safe_fit(p,c):
+    try: return p["fit"](c)
+    except Exception: return True
+
+# ── SUGGERIMENTS de productes per perfil ─────────────────────────────────────
+def _get_suggestions(c, lc):
+    lc=lc or "it"
+    prodotto=(c.get("prodotto_contrattato","") or "").lower()
+    result=[]
+    for p in PRODUCTS:
+        fits=_safe_fit(p,c)
+        already=p["id"] in prodotto
+        result.append({"p":p,"fits":fits,"already":already})
+    result.sort(key=lambda x:(not x["fits"],x["already"]))
+    return result
+
+# ── DOWNLOAD — report post-riunione ──────────────────────────────────────────
+@callback(Output("meet-dl","data"),
+          Input("btn-download","n_clicks"),
+          State("info-nome","data"), State("crm-lang","data"),
+          prevent_initial_call=True)
+def download_report(n, nome, lc):
+    if not n or not nome: return dash.no_update
+    c=get_client(nome)
+    if not c: return dash.no_update
+    lc=lc or "it"; today=date.today()
+    lines=[
+        "="*56,
+        f"  SVAG · Consulenza Finanziaria Svizzera",
+        f"  {ct('dl_profile',lc)}: {nome}",
+        f"  Data: {today.strftime('%d/%m/%Y')}",
+        "="*56,"",
+        f"─── {ct('dl_profile',lc)} ───",
+        f"Età:       {c.get('eta','—')}  |  Sesso: {'M' if c.get('sesso')=='M' else 'F'}",
+        f"Cantone:   {c.get('canton','—')}",
+        f"Situazione:{c.get('situazione','—')}  |  Reddito: CHF {c.get('reddito_mensile',0):,}/m",
+        f"Figli:     {'Sì' if c.get('figli') else 'No'}  |  Ipoteca: {'Sì' if c.get('ipoteca') else 'No'}",
+        f"Rischio:   {c.get('tolleranza_rischio','—')}",
+        f"Tel:       {c.get('telefono','—')}  |  Email: {c.get('email','—')}","",
+        f"─── {ct('dl_notes',lc)} ───",
+    ]
+    # Notes log — solo ultime 3 riunioni
+    notes_log=c.get("notes_log",[])
+    meet_notes=[n for n in notes_log if n.get("tipus")=="reunio"][-3:] or notes_log[-3:]
+    if meet_notes:
+        for n2 in reversed(meet_notes):
+            lines.append(f"[{n2.get('data','')}] {n2.get('text','')}")
+    elif c.get("note"):
+        lines.append(c["note"][:400])
+    else:
+        lines.append("—")
+    lines+=["",f"─── {ct('dl_products',lc)} ───"]
+    if c.get("prodotto_contrattato"):
+        lines.append(f"✅ Contrattato: {c['prodotto_contrattato']}")
+    sugg=[s for s in _get_suggestions(c,lc) if s["fits"] and not s["already"]][:4]
+    for s in sugg:
+        lines.append(f"⭐ {s['p']['name'].get(lc,s['p']['name']['it'])}")
+    lines+=["",f"─── {ct('dl_next',lc)} ───"]
+    fd=_fu(c)
+    if fd:
+        lines.append(f"Data:   {fd.strftime('%d/%m/%Y')}")
+        if c.get("alerta_motiu"): lines.append(f"Motivo: {c['alerta_motiu']}")
+    else:
+        lines.append("—")
+    lines+=["","─"*56,
+            "  Alex Bevilacqua · SVAG · www.svag.ch",
+            "─"*56]
+    content="\n".join(lines)
+    fname=f"SVAG_{nome.replace(' ','_')}_{today.isoformat()}.txt"
+    return dict(content=content, filename=fname)
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 if __name__=="__main__":

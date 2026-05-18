@@ -72,11 +72,16 @@ body { background: #f0f2f7; margin: 0; }
 .kanban-card {
   background: white; border-radius: 10px; padding: 12px 14px;
   margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-  border: 1px solid #eaecf2; cursor: pointer; transition: box-shadow .18s;
+  border: 1px solid #eaecf2; cursor: grab; transition: box-shadow .18s, opacity .18s;
+  user-select: none;
 }
 .kanban-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+.kanban-card:active { cursor: grabbing; }
 .kanban-card-name { font-size: 0.9rem; font-weight: 700; color: #1e2235; margin-bottom: 3px; }
 .kanban-card-sub  { font-size: 0.75rem; color: #888; }
+
+/* Drag & drop feedback */
+[data-drop] { transition: background .15s, outline .15s; }
 
 /* ── Client table ────────────────────────────────── */
 .crm-table { width: 100%; border-collapse: collapse; }
