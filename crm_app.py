@@ -469,6 +469,12 @@ app.layout = html.Div([
         ],style={"display":"flex","alignItems":"center","gap":"8px","background":"#f8f9fb",
                  "borderTop":"1px solid #eaecf2","borderRadius":"0 0 12px 12px"}),
     ], id="info-modal", size="xl", scrollable=True, is_open=False),
+    # Product detail modal
+    dbc.Modal([
+        dbc.ModalHeader(html.Span(id="prod-title"), close_button=True,
+                        style={"background":"#1e2235","color":"white","borderRadius":"12px 12px 0 0"}),
+        dbc.ModalBody(html.Div(id="prod-body")),
+    ], id="prod-modal", size="lg", scrollable=True, is_open=False),
 ])
 
 # ── NAVBAR ───────────────────────────────────────────────────────────────────
@@ -886,13 +892,21 @@ def _render_info_body(c, lc):
         # ── Suggeriments de productes
         html.H6(ct("sugg_title",lc),style={"fontWeight":"700","color":"#1e2235","marginBottom":"10px"}),
         html.Div([html.Div([
-            html.Span(s["p"]["icon"]+" ",style={"fontSize":"1.1rem"}),
-            html.Span(s["p"]["name"].get(lc,s["p"]["name"]["it"]),
-                      style={"fontWeight":"700","color":"#27ae60" if s["already"] else "#1e2235","fontSize":"0.88rem"}),
-            html.Span(f"  {ct('sugg_already',lc)}" if s["already"] else "",
-                      style={"fontSize":"0.72rem","color":"#27ae60","marginLeft":"6px","fontStyle":"italic"}),
+            html.Div([
+                html.Span(s["p"]["icon"]+" ",style={"fontSize":"1.05rem"}),
+                html.Span(s["p"]["name"].get(lc,s["p"]["name"]["it"]),
+                          style={"fontWeight":"700","color":"#27ae60" if s["already"] else "#1e2235","fontSize":"0.88rem"}),
+                html.Span(f"  {ct('sugg_already',lc)}" if s["already"] else "",
+                          style={"fontSize":"0.72rem","color":"#27ae60","marginLeft":"6px","fontStyle":"italic"}),
+                # Botó "Veure detall" alineat a la dreta
+                dbc.Button("📋 Detall",
+                           id={"type":"btn-prod","index":s["p"]["id"]},
+                           size="sm", color="light", outline=True,
+                           style={"fontSize":"0.72rem","marginLeft":"auto","padding":"2px 8px",
+                                  "float":"right","marginTop":"-2px"}),
+            ],style={"display":"flex","alignItems":"center"}),
             html.Div(s["p"]["desc"].get(lc,s["p"]["desc"]["it"]),
-                     style={"fontSize":"0.78rem","color":"#888","marginTop":"2px","lineHeight":"1.45"}),
+                     style={"fontSize":"0.78rem","color":"#888","marginTop":"4px","lineHeight":"1.45"}),
         ],style={"padding":"8px 12px","borderRadius":"8px","marginBottom":"6px",
                  "background":"#f0fdf4" if s["already"] else "#f8f9fb",
                  "border":f"1px solid {'#bbf7d0' if s['already'] else '#eaecf2'}",
@@ -1062,6 +1076,279 @@ def delete_flow(nd,nc,nok,nome_s,rn,lc):
         nome=tid["index"]
         return True, ct("del_text",lc).format(n=nome), nome, dash.no_update
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+# ── PRODUCT DETAIL ───────────────────────────────────────────────────────────
+def _thS():
+    return {"fontSize":"0.68rem","color":"#999","fontWeight":"700","textTransform":"uppercase",
+            "padding":"8px 10px","background":"#fafbfc","letterSpacing":"0.05em"}
+
+def _rec_box(lines, color="#1e40af"):
+    text = "\n".join(lines)
+    return html.Div(style={
+        "background":"#eff6ff","borderLeft":f"4px solid {color}",
+        "borderRadius":"0 8px 8px 0","padding":"12px 16px","marginTop":"10px",
+        "fontSize":"0.87rem","color":"#1e2235","lineHeight":"1.75","whiteSpace":"pre-line"},
+        children=text)
+
+def _mod_table(rows):
+    # rows: (name, description, cost_label, highlight?)
+    return html.Table([
+        html.Thead(html.Tr([
+            html.Th("Modalitat",      style=_thS()),
+            html.Th("Característiques",style=_thS()),
+            html.Th("Cost indicatiu", style={**_thS(),"whiteSpace":"nowrap"}),
+        ])),
+        html.Tbody([html.Tr([
+            html.Td([html.Span("⭐ " if r[3] else "· ",
+                               style={"color":"#f59e0b" if r[3] else "#ccc"}),
+                     html.Span(r[0], style={"fontWeight":"700" if r[3] else "400"})],
+                    style={"padding":"9px 10px","fontSize":"0.87rem",
+                           "background":"#fffbeb" if r[3] else "","borderBottom":"1px solid #f0f2f7"}),
+            html.Td(r[1], style={"padding":"9px 10px","fontSize":"0.83rem","color":"#444",
+                                 "background":"#fffbeb" if r[3] else "","borderBottom":"1px solid #f0f2f7"}),
+            html.Td(r[2], style={"padding":"9px 10px","fontSize":"0.82rem","color":"#888",
+                                 "background":"#fffbeb" if r[3] else "","borderBottom":"1px solid #f0f2f7",
+                                 "whiteSpace":"nowrap"}),
+        ]) for r in rows]),
+    ], style={"width":"100%","borderCollapse":"collapse","border":"1px solid #eaecf2",
+              "borderRadius":"8px","overflow":"hidden"})
+
+def _sec_pd(title, children):
+    return html.Div([
+        html.Div(title, style={"fontSize":"0.72rem","fontWeight":"700","color":"#999",
+                               "textTransform":"uppercase","letterSpacing":"0.07em",
+                               "marginBottom":"8px","marginTop":"18px"}),
+        *children,
+    ])
+
+def _proj_table(rows_mese_cap, highlight_mese):
+    return html.Table([
+        html.Thead(html.Tr([html.Th("Import/mes",style=_thS()),html.Th("Capital estimat a 65a",style=_thS())])),
+        html.Tbody([html.Tr([
+            html.Td(f"CHF {m}/mes",style={"fontWeight":"700","color":"#c0392b","padding":"8px 10px"} if m==highlight_mese
+                                    else {"padding":"8px 10px","fontSize":"0.87rem"}),
+            html.Td(f"CHF {cap:,}",style={"fontWeight":"700","color":"#c0392b","padding":"8px 10px"} if m==highlight_mese
+                                    else {"padding":"8px 10px","fontSize":"0.87rem"}),
+        ]) for m,cap in rows_mese_cap],),
+    ],style={"width":"100%","borderCollapse":"collapse","border":"1px solid #eaecf2","borderRadius":"8px","overflow":"hidden"})
+
+def _prod_detail(prod_id, c, lc):
+    lc = lc or "it"
+    eta      = int(c.get("eta") or 40)
+    reddito  = int(c.get("reddito_mensile") or 0)
+    situ     = c.get("situazione","")
+    rischio  = c.get("tolleranza_rischio","Media")
+    has_fil  = bool(c.get("figli"))
+    has_ipo  = bool(c.get("ipoteca"))
+    n_figli  = int(c.get("n_figli") or 0)
+    nome     = c.get("nome","—")
+
+    def pv(m, anni, rate=0.015):
+        if anni <= 0 or m <= 0: return 0
+        return int(m * 12 * ((1+rate)**anni - 1) / rate)
+
+    # ── 3° Pilastro ──────────────────────────────────────────────────────────
+    if prod_id == "3p":
+        anni     = max(65 - eta, 0)
+        max_ann  = 35280 if situ=="Indipendente" else 7056
+        max_mese = max_ann // 12
+        sugg = (max_mese if reddito >= 8000 else
+                400     if reddito >= 5000 else
+                200     if reddito >= 3000 else 100)
+        is_ass = has_fil or has_ipo
+        rows_mod = [
+            ("Conto bancario (3a)", "Versamenti flessibili, nessun vincolo vita. Rendimento tasso di mercato.",
+             "CHF 0 spese base", not is_ass),
+            ("Assicurazione (3a)", "Premio fisso, include copertura vita/invalidità integrata. Riscatto garantito.",
+             f"da CHF {sugg}/mese", is_ass),
+        ]
+        proj = [(m, pv(m, anni)) for m in sorted({100,200,sugg,max_mese}) if m > 0]
+        return html.Div([
+            _sec_pd("Modalitats disponibles", [_mod_table(rows_mod)]),
+            _sec_pd(f"Recomanació per {nome}", [_rec_box([
+                f"📌 Import recomanat: CHF {sugg}/mes  (CHF {sugg*12:,}/any)",
+                f"   → Màxim deduïble: CHF {max_mese}/mes  (CHF {max_ann:,}/any)",
+                f"   → Anys restants fins 65: {anni}",
+                f"   → Avantatge fiscal: deduccions directes de la base imposable",
+                f"   → Modalitat: {'Assegurança (protecció vida inclosa)' if is_ass else 'Compte bancari (més flexible)'}",
+            ])]),
+            _sec_pd("Projecció capital a 65 anys (taxa 1.5%/any)", [_proj_table(proj, sugg)]),
+        ])
+
+    # ── Assicurazione Vita ───────────────────────────────────────────────────
+    elif prod_id == "vita":
+        cap     = max(200_000, reddito * 12 * 5)
+        prem_p  = max(40,  int(cap / 1000 * 0.7))
+        prem_m  = max(200, int(cap / 1000 * 2.5))
+        rec_puro = eta < 45 or has_ipo
+        return html.Div([
+            _sec_pd("Modalitats", [_mod_table([
+                ("Rischio puro (term life)", "Solo copertura decesso. Premio basso, nessun risparmio.",
+                 f"da CHF {prem_p}/mes", rec_puro),
+                ("Risparmio misto", "Copertura + componente risparmio. Riscatto garantito a scadenza.",
+                 f"da CHF {prem_m}/mes", not rec_puro),
+            ])]),
+            _sec_pd(f"Recomanació per {nome}", [_rec_box([
+                f"📌 Capital assegurat recomanat: CHF {cap:,}",
+                f"   → Regla: 5× reddito annuo = CHF {reddito*12*5:,}",
+                (f"   → Amb {n_figli} fill/s: mínim CHF 200.000" if has_fil else ""),
+                (f"   → Amb hipoteca: cobrir almenys el deute pendent" if has_ipo else ""),
+                f"   → Modalitat: {'Rischio puro — premi baixos, màxima cobertura' if rec_puro else 'Risparmio misto — també estalvi a llarg termini'}",
+            ])]),
+        ])
+
+    # ── Assicurazione Invalidità ─────────────────────────────────────────────
+    elif prod_id == "ai":
+        ai_st = int(reddito * 0.60)
+        gap   = max(0, reddito - ai_st)
+        ind   = situ == "Indipendente"
+        return html.Div([
+            _sec_pd("Modalitats", [_mod_table([
+                ("Complement AI (assalariats)", "Complementa l'AI estatal. Cobreix la llacuna fins al 80-90% del salari.",
+                 f"da CHF {max(80, gap//10)}/mes", not ind),
+                ("Cobertura autònoms", "Cobertura completa per a treballadors autònoms (sense AI automàtica).",
+                 f"da CHF {max(150, gap//8)}/mes", ind),
+            ])]),
+            _sec_pd(f"Anàlisi llacuna per {nome}", [_rec_box([
+                f"📌 Ingressos mensuals: CHF {reddito:,}",
+                f"   → Cobertura AI estatal (~60%): CHF {ai_st:,}/mes",
+                f"   → Llacuna a assegurar: CHF {gap:,}/mes",
+                f"   → Cobertura recomanada: CHF {gap:,}/mes complement AI",
+                ("   ⚠️  Autònom: cap AI automàtica → PRIORITAT ALTA" if ind else ""),
+            ], color="#c0392b" if ind else "#1e40af")]),
+        ])
+
+    # ── Pianificazione Ipotecaria ────────────────────────────────────────────
+    elif prod_id == "ipoteca":
+        rec_mod = ("SARON" if rischio=="Alta" else
+                   "Fisso 5 anni" if rischio=="Media" else "Fisso 10 anni")
+        return html.Div([
+            _sec_pd("Models de finançament", [_mod_table([
+                ("Fisso 2 anni",   "Rata estable 2 anys. Renovació freqüent, bones condicions actuals.", "~1.8-2.2%/any", rischio=="Alta"),
+                ("Fisso 5 anni",   "Equilibri estabilitat / flexibilitat. El més triat a Suïssa.",       "~2.0-2.5%/any", rischio=="Media"),
+                ("Fisso 10 anys",  "Màxima estabilitat. Ideal si previsió de pujada de tipus.",          "~2.3-2.8%/any", rischio=="Bassa"),
+                ("SARON (variable)","Tipus variable lligat al mercat. Ara convenient, però risc.",       "~1.3-1.6%/any", False),
+                ("Mixt",           "50% fix + 50% SARON. Redueix volatilitat.",                         "tipus mitjà",   False),
+            ])]),
+            _sec_pd(f"Recomanació per {nome} (tolerància {rischio})", [_rec_box([
+                f"📌 Model recomanat: {rec_mod}",
+                f"   → Amortament INDIRECTE via 3° Pilar:",
+                f"      En lloc d'amortitzar → versió capital al 3° Pilar",
+                f"      Doble avantatge fiscal: deducció hipoteca + deducció 3° Pilar",
+                f"      A 65 anys: capital disponible en comptes de deute cancel·lat",
+                f"   → Comparar mínim 3 bancs / asseguradores",
+            ])]),
+        ])
+
+    # ── Ottimizzazione LPP ───────────────────────────────────────────────────
+    elif prod_id == "lpp":
+        aliq    = (0.35 if reddito > 8000 else 0.28 if reddito > 5000 else 0.22)
+        ex_comp = min(20000, reddito * 24)
+        risp    = int(ex_comp * aliq)
+        return html.Div([
+            _sec_pd("Modalitats LPP", [_mod_table([
+                ("Compres voluntàries (rescats)", "Versaments a la llacuna CP, deduïbles. Rendiment garantit CP.",
+                 f"CHF 5.000-{ex_comp:,}/any", True),
+                ("Retir anticipat per habitatge", "Retir parcial CP per a compra / renovació 1ª residència.",
+                 "màx. 10% cada 5 anys", has_ipo),
+                ("Planificació renda vs capital", "A jubilació: escollir entre renda mensual o capital únic.",
+                 "depèn del pla CP", False),
+            ])]),
+            _sec_pd(f"Recomanació per {nome}", [_rec_box([
+                f"📌 Compra voluntària exemple: CHF {ex_comp:,}/any",
+                f"   → Alíquota fiscal estimada: {int(aliq*100)}%",
+                f"   → Estalvi impostos immediat: CHF {risp:,}",
+                f"   → Rendiment CP: ~2-3%/any (garantit)",
+                f"   → Acció: sol·licitar extracte CP per calcular la llacuna exacta",
+            ])]),
+        ])
+
+    # ── Hausrat + RC ─────────────────────────────────────────────────────────
+    elif prod_id == "hausrat":
+        val  = max(30000, reddito * 8)
+        prem = 180 + min(100, reddito // 80)
+        prem_pr = prem + 90
+        rec_pr  = reddito >= 6000
+        return html.Div([
+            _sec_pd("Modalitats", [_mod_table([
+                ("Standard", "Robatori, incendi, aigues. RC privada CHF 3M. Bici inclosa.",
+                 f"~CHF {prem}/any", not rec_pr),
+                ("Premium",  "Cobertura estesa: danys elèctrics, RC CHF 5M, assistència 24h.",
+                 f"~CHF {prem_pr}/any", rec_pr),
+            ])]),
+            _sec_pd(f"Recomanació per {nome}", [_rec_box([
+                f"📌 Valor contingut estimat: CHF {val:,}",
+                f"   → Model recomanat: {'Premium' if rec_pr else 'Standard'}",
+                f"   → Prima estimada: CHF {prem_pr if rec_pr else prem}/any",
+                f"   → RC privada: indispensable (cobreix danys a tercers involuntaris)",
+                f"   → Sovint inclòs en pack amb assegurança de malaltia → descomptes",
+            ])]),
+        ])
+
+    # ── Cassa Malati ─────────────────────────────────────────────────────────
+    elif prod_id == "malattia":
+        franc_rec = (2500 if reddito >= 7000 else 1500 if reddito >= 5000
+                     else 1000 if reddito >= 3000 else 500)
+        mod_rec = ("HMO" if reddito >= 5000 else "Telmed" if reddito >= 3000 else "Standard")
+        risp_franc = max(0, (franc_rec - 300) // 300 * 60)
+        return html.Div([
+            _sec_pd("Models LAMal", [_mod_table([
+                ("HMO",      "Metge de referència HMO. Primes -15/20% vs estàndard. Limitació llibertat elecció.",
+                 "-15-20% prima", reddito >= 5000),
+                ("Telmed",   "Primera consulta per telèfon. Bon equilibri cost/flexibilitat.",
+                 "-10-15% prima", 3000 <= reddito < 5000),
+                ("Estàndard","Llibertat total d'elecció metge. Prima màxima.",
+                 "prima base 100%", reddito < 3000),
+            ])]),
+            _sec_pd("Franquícia recomanada", [
+                html.Table([
+                    html.Thead(html.Tr([
+                        html.Th("Franquícia",        style=_thS()),
+                        html.Th("Estalvi primes/any", style=_thS()),
+                        html.Th("Recomanat si…",      style=_thS()),
+                    ])),
+                    html.Tbody([html.Tr([
+                        html.Td(f"CHF {f}",
+                                style={"fontWeight":"700","color":"#c0392b","padding":"8px 10px",
+                                       "background":"#fde8e8"} if f==franc_rec
+                                       else {"padding":"8px 10px","fontSize":"0.87rem"}),
+                        html.Td(f"CHF {max(0,(f-300)//300*60)}/any",
+                                style={"padding":"8px 10px","fontSize":"0.87rem"}),
+                        html.Td("Pocs visites/any" if f >= 1500 else "Ús mèdic habitual",
+                                style={"padding":"8px 10px","fontSize":"0.82rem","color":"#888"}),
+                    ]) for f in [300,500,1000,1500,2000,2500]]),
+                ],style={"width":"100%","borderCollapse":"collapse","border":"1px solid #eaecf2","borderRadius":"8px","overflow":"hidden","marginBottom":"8px"}),
+                _rec_box([
+                    f"📌 Franquícia recomanada: CHF {franc_rec}",
+                    f"   → Model: {mod_rec}",
+                    f"   → Estalvi estimat vs CHF 300: CHF {risp_franc}/any",
+                    f"   → Comparar anualment (canvi lliure a l'octubre)",
+                ]),
+            ]),
+        ])
+
+    return html.Div("—")
+
+
+@callback(
+    Output("prod-modal","is_open"),
+    Output("prod-title","children"),
+    Output("prod-body","children"),
+    Input({"type":"btn-prod","index":ALL},"n_clicks"),
+    State("info-nome","data"),
+    State("crm-lang","data"),
+    prevent_initial_call=True,
+)
+def open_prod_detail(n_list, nome, lc):
+    lc = lc or "it"; tid = ctx.triggered_id
+    if not isinstance(tid,dict) or not (ctx.triggered or [{}])[0].get("value"):
+        return dash.no_update, dash.no_update, dash.no_update
+    prod_id = tid["index"]
+    p = next((x for x in PRODUCTS if x["id"]==prod_id), None)
+    if not p: return dash.no_update, dash.no_update, dash.no_update
+    c = get_client(nome) if nome else {}
+    name = p["name"].get(lc, p["name"]["it"])
+    return True, f"{p['icon']} {name}", _prod_detail(prod_id, c or {}, lc)
 
 # ── RELAY list-new-btn → open_modal ──────────────────────────────────────────
 @callback(Output("new-relay","data"),
