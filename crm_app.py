@@ -665,6 +665,9 @@ def open_modal(n_new, n_edit, n_cancel, n_save, lc):
     if tid in ("btn-cancel","btn-save") or tid is None:
         return False, dash.no_update, dash.no_update, None
     if tid == "btn-new":
+        # FIX: ignora render inicial del navbar (n_clicks=None)
+        if not (ctx.triggered or [{}])[0].get("value"):
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
         return True, _form(None,lc), ct("modal_new",lc), None
     if isinstance(tid,dict) and tid.get("type")=="btn-edit":
         # FIX: ignora el render inicial (n_clicks=None) — evita modal auto-obert
