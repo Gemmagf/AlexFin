@@ -5,7 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn crm_app:server --workers 1 --timeout 120
     plan: free
-    branch: upgrade-streamlit-app
+    branch: main
     envVars:
       - key: SECRET_KEY
         generateValue: true
