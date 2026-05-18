@@ -1,5 +1,5 @@
 """
-AlexFin CRM — App standalone per a Alex Bevilacqua
+ChristianFin CRM — App standalone per a Christian Bevilacqua
 Execució:  /usr/bin/python3 crm_app.py
 URL:       http://localhost:8051  ·  Login: alex / go
 
@@ -297,7 +297,7 @@ _T = {
     "no_change":      {"it":"⚠️ Niente da salvare.","de":"⚠️ Nichts zu speichern.","fr":"⚠️ Rien à enregistrer.","en":"⚠️ Nothing to save.","ca":"⚠️ Res a desar."},
     # Productes
     "prod_title":     {"it":"📦 Catalogo Prodotti","de":"📦 Produktkatalog","fr":"📦 Catalogue Produits","en":"📦 Product Catalogue","ca":"📦 Catàleg de Productes"},
-    "prod_sub":       {"it":"Soluzioni finanziarie proposte da Alex Bevilacqua","de":"Finanzlösungen von Alex Bevilacqua","fr":"Solutions financières par Alex Bevilacqua","en":"Financial solutions by Alex Bevilacqua","ca":"Solucions financeres d'Alex Bevilacqua"},
+    "prod_sub":       {"it":"Soluzioni finanziarie proposte da Christian Bevilacqua","de":"Finanzlösungen von Christian Bevilacqua","fr":"Solutions financières par Christian Bevilacqua","en":"Financial solutions by Christian Bevilacqua","ca":"Solucions financeres d'Christian Bevilacqua"},
     "prod_clients":   {"it":"clienti","de":"Kunden","fr":"clients","en":"clients","ca":"clients"},
     # Suggeriments
     "sugg_title":     {"it":"💡 Prodotti consigliati","de":"💡 Empfohlene Produkte","fr":"💡 Produits conseillés","en":"💡 Recommended products","ca":"💡 Productes recomanats"},
@@ -398,7 +398,7 @@ server.secret_key = os.environ.get("SECRET_KEY","alexfin-crm-secret")
 
 _LOGIN_HTML = """<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AlexFin CRM · Login</title>
+<title>ChristianFin CRM · Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,body{font-family:'Inter',sans-serif;box-sizing:border-box;margin:0;padding:0}
@@ -417,14 +417,14 @@ button:hover{background:#a93226}
 .footer{text-align:center;font-size:0.75rem;color:#aaa;margin-top:24px}
 </style></head>
 <body><div class="card">
-  <div class="logo"><div class="logo-text"><span>Alex</span>Fin</div><span class="logo-badge">CRM</span></div>
+  <div class="logo"><div class="logo-text"><span>Christian</span>Fin</div><span class="logo-badge">CRM</span></div>
   {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
   <form method="POST" action="/login">
     <label>Utente</label><input type="text" name="username" placeholder="nome utente" autocomplete="username" required>
     <label>Password</label><input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
     <button type="submit">→ Accedi al CRM</button>
   </form>
-  <div class="footer">Uso professionale riservato · © 2026 Alex Bevilacqua</div>
+  <div class="footer">Uso professionale riservato · © 2026 Christian Bevilacqua</div>
 </div></body></html>"""
 
 @server.route("/login",methods=["GET","POST"])
@@ -449,7 +449,7 @@ def require_login():
 app = dash.Dash(__name__,server=server,
                 external_stylesheets=[dbc.themes.BOOTSTRAP],
                 suppress_callback_exceptions=True,
-                title="AlexFin CRM",assets_folder="crm_assets")
+                title="ChristianFin CRM",assets_folder="crm_assets")
 
 # ── UI HELPERS ───────────────────────────────────────────────────────────────
 def _pill(stage, lc):
@@ -597,7 +597,7 @@ app.layout = html.Div([
 def render_navbar(lc):
     lc=lc or "it"
     return [
-        html.Div([html.Span("Alex",style={"color":"#c0392b"}),html.Span("Fin")],className="crm-logo"),
+        html.Div([html.Span("Christian",style={"color":"#c0392b"}),html.Span("Fin")],className="crm-logo"),
         html.Span("CRM",className="crm-badge"),
         html.Span("·",style={"color":"rgba(255,255,255,0.2)","margin":"0 6px"}),
         html.A(ct("nav_dash",lc),    id="nav-dashboard",className="crm-nav-link",href="#"),
@@ -1693,8 +1693,8 @@ def _generate_pdf(nome, lc):
         buf, pagesize=A4,
         leftMargin=18*mm, rightMargin=18*mm,
         topMargin=14*mm, bottomMargin=18*mm,
-        title=f"AlexFin – {nome}",
-        author="Alex Bevilacqua",
+        title=f"ChristianFin – {nome}",
+        author="Christian Bevilacqua",
     )
 
     # ── styles ────────────────────────────────────────────────────────────────
@@ -1730,7 +1730,7 @@ def _generate_pdf(nome, lc):
 
     # ── HEADER block ─────────────────────────────────────────────────────────
     consultant_info = (
-        "Alex Bevilacqua  |  Consulenza Finanziaria Svizzera"
+        "Christian Bevilacqua  |  Consulenza Finanziaria Svizzera"
     )
     date_str = today.strftime("%d %B %Y")
     header_data = [[
@@ -1888,7 +1888,7 @@ def _generate_pdf(nome, lc):
     story.append(HRFlowable(width="100%", thickness=0.6, color=NAVY))
     story.append(Spacer(1,5))
     story.append(Paragraph(
-        "Alex Bevilacqua  ·  Consulenza Finanziaria Svizzera",
+        "Christian Bevilacqua  ·  Consulenza Finanziaria Svizzera",
         S["footer"]
     ))
 
@@ -1908,13 +1908,13 @@ def download_report(n, nome, lc):
     lc = lc or "it"
     today = date.today()
     b64 = _generate_pdf(nome, lc)
-    fname = f"AlexFin_{nome.replace(' ','_')}_{today.isoformat()}.pdf"
+    fname = f"ChristianFin_{nome.replace(' ','_')}_{today.isoformat()}.pdf"
     return dict(base64=True, content=b64, filename=fname, type="application/pdf")
 
 # ── MAIN ─────────────────────────────────────────────────────────────────────
 if __name__=="__main__":
     debug=os.environ.get("DASH_DEBUG","true").lower()=="true"
-    print(f"\n✅  AlexFin CRM  →  http://localhost:{PORT}")
+    print(f"\n✅  ChristianFin CRM  →  http://localhost:{PORT}")
     print(f"   Login: {AUTH_USER} / {AUTH_PASS}")
     print(f"   Idiomes: IT · DE · FR · EN · CA\n")
     app.run(debug=debug,port=PORT,host="0.0.0.0")
