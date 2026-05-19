@@ -1563,7 +1563,10 @@ def _prod_detail(prod_id, c, lc):
     elif prod_id == "ipoteca":
         rec_mod = ("SARON" if rischio == "Alta" else
                    "Fisso 5 anni" if rischio == "Media" else "Fisso 10 anni")
-        cap_3p_ind = pv(sugg_3p := min(max_3p := (35280 if situ=="Indipendente" else 7056)//12, 500), anni_3p := max(65-eta,0))
+        max_3p     = (35280 if situ == "Indipendente" else 7056) // 12
+        sugg_3p    = min(max_3p, 500)
+        anni_3p    = max(65 - eta, 0)
+        cap_3p_ind = pv(sugg_3p, anni_3p)
 
         why_pts = [
             "In Svizzera il 65% delle famiglie ha un'ipoteca — strutturarla bene può risparmiare decine di migliaia di CHF",
